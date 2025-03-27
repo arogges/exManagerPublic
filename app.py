@@ -37,13 +37,14 @@ def estrai_dati_da_pdf(lista_file_pdf):
                     for row in tables[1:]:
                         if len(row) >= 8:
                             a = row[3]
+                            nf= row[4]
                             b = row[5]
                             c = row[6]
                             d = row[8]
-                            if b and c and d:
-                                dati_completi.append([s,dt,a, b, c, d])
+                            if b and c and d>0:
+                                dati_completi.append([s,dt,a,nf, b, c, d])
 
-    colonne_selezionate = ["Società Testata","Data Testata","Nominativo Dirigente", "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
+    colonne_selezionate = ["Società Testata","Data Testata","Nominativo Dirigente","Nominativo Familiare", "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
     
     return pd.DataFrame(dati_completi, columns=colonne_selezionate)
 
