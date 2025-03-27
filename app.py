@@ -41,7 +41,7 @@ def estrai_dati_da_pdf(lista_file_pdf):
                             b = row[5]
                             c = row[6]
                             d = row[8]
-                            if b and c and d>0:
+                            if b and c and d:
                                 dati_completi.append([s,dt,a,nf, b, c, d])
 
     colonne_selezionate = ["Società Testata","Data Testata","Nominativo Dirigente","Nominativo Familiare", "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
