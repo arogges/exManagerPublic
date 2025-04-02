@@ -3,7 +3,7 @@ import pdfplumber
 import pandas as pd
 import io
 import re
-#import zipfile
+import zipfile
 from datetime import datetime
 
 
@@ -25,11 +25,11 @@ def estrai_data_da_pdf_testata(file_pdf):
 
 def estrai_pdf_da_zip(file_zip):
     pdf_files = []
-   # with zipfile.ZipFile(file_zip, "r") as zip_ref:
-   #     for file_name in zip_ref.namelist():
-   #         if file_name.lower().endswith(".pdf"):  
-   #             with zip_ref.open(file_name) as pdf_file:
-   #                 pdf_files.append(io.BytesIO(pdf_file.read()))  
+    with zipfile.ZipFile(file_zip, "r") as zip_ref:
+        for file_name in zip_ref.namelist():
+            if file_name.lower().endswith(".pdf"):  
+                with zip_ref.open(file_name) as pdf_file:
+                    pdf_files.append(io.BytesIO(pdf_file.read()))  
     return pdf_files
 
 def estrai_dati_da_pdf(lista_file_pdf):
