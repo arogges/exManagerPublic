@@ -3,6 +3,7 @@ import pdfplumber
 import pandas as pd
 import io
 import re
+import zipfile
 from datetime import datetime
 
 
@@ -22,6 +23,14 @@ def estrai_data_da_pdf_testata(file_pdf):
             return match.group(2)
         return "no_data"
 
+def estrai_pdf_da_zip(file_zip):
+    pdf_files = []
+    with zipfile.ZipFile(file_zip, "r") as zip_ref:
+        for file_name in zip_ref.namelist():
+            if file_name.lower().endswith(".pdf"):  
+                with zip_ref.open(file_name) as pdf_file:
+                    pdf_files.append(io.BytesIO(pdf_file.read()))  
+    return pdf_files
 
 def estrai_dati_da_pdf(lista_file_pdf):
     dati_completi = []
@@ -48,35 +57,41 @@ def estrai_dati_da_pdf(lista_file_pdf):
     
     return pd.DataFrame(dati_completi, columns=colonne_selezionate)
 
-# UI Streamlit
 st.title("Estrazione Tabelle da PDF FasiOpen")
+st.info("Build 1.3 - 02/04/2025")
 
-# Upload multiplo di file PDF
-file_caricati = st.file_uploader("Carica i file PDF", type=["pdf"], accept_multiple_files=True)
+file_caricati = st.file_uploader("Carica i file PDF o ZIP", type=["pdf","zip"], accept_multiple_files=True)
 
 if file_caricati:
-    st.success(f"{len(file_caricati)} file caricati con successo!")
     
-    # Estrai dati dai PDF
-    df_finale = estrai_dati_da_pdf(file_caricati)
+    st.success(f"{len(file_caricati)} file caricati con successo!")
+    lista_pdf = []
+    
+    for file in file_caricati:
+        if file.name.lower().endswith(".pdf"):
+            lista_pdf.append(file)
+        elif file.name.lower().endswith(".zip"):
+            lista_pdf.extend(estrai_pdf_da_zip(file))  
 
-    if not df_finale.empty:
-        st.write("### Anteprima Dati Estratti")
-        st.dataframe(df_finale.head())
+    if lista_pdf:
+        df_finale = estrai_dati_da_pdf(lista_pdf)
 
-        # Creazione file Excel in memoria
-        buffer = io.BytesIO()
-        with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-            df_finale.to_excel(writer, index=False, sheet_name="Rimborsi")
+        if not df_finale.empty:
+            st.write("### Anteprima Dati Estratti")
+            st.dataframe(df_finale.head())
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_name = f"estratto_fasi_open_{timestamp}.xlsx"
-        # Download del file Excel
-        st.download_button(
-            label="📥 Scarica il file Excel",
-            data=buffer.getvalue(),
-            file_name=file_name,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-    else:
-        st.warning("Nessuna tabella trovata nei PDF!")
+            buffer = io.BytesIO()
+            with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+                df_finale.to_excel(writer, index=False, sheet_name="Rimborsi")
+
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            file_name = f"estratto_fasi_open_{timestamp}.xlsx"
+
+            st.download_button(
+                label="📥 Scarica il file Excel",
+                data=buffer.getvalue(),
+                file_name=file_name,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            st.warning("Nessuna tabella trovata nei PDF!")
