@@ -44,7 +44,7 @@ def estrai_dati_da_pdf(lista_file_pdf):
                 tables = page.extract_table()
                 if tables:
                     for row in tables[1:]:
-                        if len(row) >= 8:
+                        if len(row) >= 9:
                             a = row[3]
                             nf= row[4]
                             b = row[5]
