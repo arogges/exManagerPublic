@@ -43,14 +43,16 @@ def estrai_dati_da_pdf(lista_file_pdf):
             for page in pdf.pages:
                 tables = page.extract_table()
                 if tables:
-                    for row in tables[1:]:
+                     for i, row in enumerate(tables[1:], 1):
                         if len(row) >= 9:
                             a = row[3]
                             nf= row[4]
                             b = row[5]
                             c = row[6]
                             d = row[10]
-                            if (d != "0,00" and d!=""):     
+                            if (d != "0,00" and d!=""):
+                                if ((a=None or a='') and i>0):
+                                    a=tables[i][3]     
                                 dati_completi.append([s,dt,a,nf, b, c, d])
 
     colonne_selezionate = ["Società Testata","Data Testata","Nominativo Dirigente","Nominativo Familiare", "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
