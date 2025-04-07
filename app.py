@@ -56,12 +56,13 @@ def estrai_dati_da_pdf(lista_file_pdf):
                             st.info(row[7])
                             st.info(row[8])
                             st.info(row[9])
+                            st.info(row[10])
                             st.info('-----------------------------------------------------------------------------')
                             a = row[3]
                             nf= row[4]
                             b = row[5]
                             c = row[6]
-                            d = row[8]
+                            d = row[10]
                             if d != "0,00":
                                 dati_completi.append([s,dt,a,nf, b, c, d])
 
