@@ -45,6 +45,7 @@ def estrai_dati_da_pdf(lista_file_pdf):
                 if tables:
                     for row in tables[1:]:
                         if len(row) >= 9:
+                            st.info(row)
                             st.info(row[0])
                             st.info(row[1])
                             st.info(row[2])
