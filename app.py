@@ -45,12 +45,20 @@ def estrai_dati_da_pdf(lista_file_pdf):
                 if tables:
                     for row in tables[1:]:
                         if len(row) >= 9:
-                            st.info(row)
+                            st.info(row[0])
+                            st.info(row[1])
+                            st.info(row[2])
+                            st.info(row[3])
+                            st.info(row[4])
+                            st.info(row[5])
+                            st.info(row[6])
+                            st.info(row[7])
+                            st.info(row[8])
                             a = row[3]
                             nf= row[4]
                             b = row[5]
                             c = row[6]
-                            d = row[9]
+                            d = row[8]
                             if d != "0,00":
                                 dati_completi.append([s,dt,a,nf, b, c, d])
 
