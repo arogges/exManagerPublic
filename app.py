@@ -54,6 +54,7 @@ def estrai_dati_da_pdf(lista_file_pdf):
                             st.info(row[6])
                             st.info(row[7])
                             st.info(row[8])
+                            st.info(row[9])
                             a = row[3]
                             nf= row[4]
                             b = row[5]
