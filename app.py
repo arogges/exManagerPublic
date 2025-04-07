@@ -58,7 +58,7 @@ def estrai_dati_da_pdf(lista_file_pdf):
     return pd.DataFrame(dati_completi, columns=colonne_selezionate)
 
 st.title("Estrazione Tabelle da PDF FasiOpen")
-st.info("Build 1.3 - 02/04/2025")
+st.info("Build 1.3.1 - 07/04/2025")
 
 file_caricati = st.file_uploader("Carica i file PDF o ZIP", type=["pdf","zip"], accept_multiple_files=True)
 
