@@ -50,7 +50,7 @@ def estrai_dati_da_pdf(lista_file_pdf):
                             b = row[5]
                             c = row[6]
                             d = row[10]
-                             if (not(c==None) and d!= "0,00" and d!=""):
+                            if (not(c==None) and d!= "0,00" and d!=""):
                                 if ((a==None or a=='') and i>0):
                                     a=tables[i][3]
                                 if ((nf==None or nf=='') and i>0):
