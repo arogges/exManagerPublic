@@ -104,12 +104,11 @@ def estrai_dati_da_pdf(lista_file_pdf):
                             st.info('8'+tables[i][8])
                             st.info('9'+tables[i][9])
                             st.info('10'+tables[i][10])
-                            st.info('11'+tables[i][11])
-                            a = tables[i][3]
-                            nf= tables[i][4]
-                            b = tables[i][5]
-                            c = tables[i][6]
-                            d = tables[i][11]
+                            a = tables[i][2]
+                            nf= tables[i][3]
+                            b = tables[i][4]
+                            c = tables[i][5]
+                            d = tables[i][10]
                             st.info("---------------------------------------------------------");
                             if (not(c==None) and d!= "0,00" and d!=""):
                                 if ((a==None or a=='') and i>0):
