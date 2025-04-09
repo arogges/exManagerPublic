@@ -46,6 +46,10 @@ def estrai_dati_da_pdf(lista_file_pdf):
                      for i, row in enumerate(tables[1:], 1):
                         st.info(row)
                         st.info(len(row))
+                        st.info(row[3])
+                        st.info(row[4])
+                        st.info(row[5])
+                        st.info(row[6])
                         st.info("---------------------------------------------------------");
                         if len(row) == 9:
                             a = row[3]
