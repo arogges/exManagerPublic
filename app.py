@@ -44,6 +44,9 @@ def estrai_dati_da_pdf(lista_file_pdf):
                 tables = page.extract_table()
                 if tables:
                      for i, row in enumerate(tables[1:], 1):
+                        st.info(row)
+                        st.info(len(row))
+                        st.info("---------------------------------------------------------");
                         if len(row) == 9:
                             a = row[3]
                             nf= row[4]
@@ -77,7 +80,7 @@ def estrai_dati_da_pdf(lista_file_pdf):
     return pd.DataFrame(dati_completi, columns=colonne_selezionate)
 
 st.title("Estrazione Tabelle da PDF FasiOpen")
-st.info("Build 1.3.2.1 - 07/04/2025")
+st.info("Build 1.3.2.2 - 09/04/2025")
 
 file_caricati = st.file_uploader("Carica i file PDF o ZIP", type=["pdf","zip"], accept_multiple_files=True)
 
