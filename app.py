@@ -46,12 +46,13 @@ def estrai_dati_da_pdf(lista_file_pdf):
                      for i, row in enumerate(tables[1:], 1):
                         st.info(row)
                         st.info(len(row))
-                        st.info(row[3])
-                        st.info(row[4])
-                        st.info(row[5])
-                        st.info(row[6])
-                        st.info("---------------------------------------------------------");
                         if len(row) == 9:
+                            st.info(row[3])
+                            st.info(row[4])
+                            st.info(row[5])
+                            st.info(row[6])
+                            st.info(row[9])
+                            st.info("---------------------------------------------------------");
                             a = row[3]
                             nf= row[4]
                             b = row[5]
@@ -65,6 +66,12 @@ def estrai_dati_da_pdf(lista_file_pdf):
                                 dati_completi.append([s,dt,a,nf, b, c, d])
                         else:
                             if len(row) == 10:
+                                st.info(row[3])
+                                st.info(row[4])
+                                st.info(row[5])
+                                st.info(row[6])
+                                st.info(row[10])
+                                st.info("---------------------------------------------------------");
                                 a = row[3]
                                 nf= row[4]
                                 b = row[5]
@@ -83,6 +90,12 @@ def estrai_dati_da_pdf(lista_file_pdf):
                                     b = row[5]
                                     c = row[6]
                                     d = row[11]
+                                    st.info(row[3])
+                                    st.info(row[4])
+                                    st.info(row[5])
+                                    st.info(row[6])
+                                    st.info(row[11])
+                                    st.info("---------------------------------------------------------");
                                     if (not(c==None) and d!= "0,00" and d!=""):
                                         if ((a==None or a=='') and i>0):
                                             a=tables[i-1][3]
