@@ -44,6 +44,8 @@ def estrai_dati_da_pdf(lista_file_pdf):
                 tables = page.extract_table()
                 if tables:
                      for i, row in enumerate(tables[1:], 1):
+                        st.info(tables[i])
+                        st.info("-----------++++++++++++++++++++++++++++++++---");
                         st.info(row)
                         st.info(len(row))
                         if len(row) == 9:
