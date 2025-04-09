@@ -93,6 +93,9 @@ def estrai_dati_da_pdf(lista_file_pdf):
                             st.info(tables[i])
                             st.info(len(tables[i]))
                             st.info("-----------++++++++++++++++++++++++++++++++---");
+                            st.info('0'+tables[i][0])
+                            st.info('1'+tables[i][1])
+                            st.info('2'+tables[i][2])
                             st.info('3'+tables[i][3])
                             st.info('4'+tables[i][4])
                             st.info('5'+tables[i][5])
