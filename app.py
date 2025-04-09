@@ -34,7 +34,6 @@ def estrai_pdf_da_zip(file_zip):
 
 def estrai_dati_da_pdf(lista_file_pdf):
     dati_completi = []
-
     for file_pdf in lista_file_pdf:
         s=estrai_testo_da_pdf_testata(file_pdf)
         dt=estrai_data_da_pdf_testata(file_pdf)
@@ -83,42 +82,45 @@ def estrai_dati_da_pdf(lista_file_pdf):
                             else:
                                 st.info("-rigaScartata")
                         if len(tables[i]) == 10:
-                          
-                            a = tables[i][3]
-                            nf= tables[i][4]
-                            b = tables[i][5]
-                            c = tables[i][6]
+                           # st.info(tables[i])
+                           # st.info(len(tables[i]))
+                            a = tables[i][2]
+                            nf= tables[i][3]
+                            b = tables[i][4]
+                            c = tables[i][5]
                             d = tables[i][9]
-                            if (not(c==None) and c!="" and not(d==None)  and d!= "0,00" and d!=""):
-                                st.info(tables[i])
-                                st.info(len(tables[i]))
-                                st.info("LETTI------++++++++++++++++++++++++++++++++---");
-                                st.info(tables[i][3])
-                                st.info(tables[i][4])
-                                st.info(tables[i][5])
-                                st.info(tables[i][6])
-                                st.info(tables[i][9])
-                                st.info("-----------++++++++++++++++++++++++++++++++---");
+                           # st.info("LETTI------++++++++++++++++++++++++++++++++---");
+                           # st.info(tables[i][0])
+                           # st.info(tables[i][1])
+                           # st.info(tables[i][2])
+                           # st.info(tables[i][3])
+                           # st.info(tables[i][4])
+                           # st.info(tables[i][5])
+                           # st.info(tables[i][6])
+                           # st.info(tables[i][7])
+                           # st.info(tables[i][8])
+                           # st.info(tables[i][9])
+                            if (c and c!="" and d and d!= "0,00" and d!=""):
                                 if ((a==None or a=='') and i>0):
-                                    a=tables[i-1][3]
+                                    a=tables[i-1][2]
                                 if ((nf==None or nf=='') and i>0):
-                                    nf=tables[i-1][4]
+                                    nf=tables[i-1][3]
                                 if ((a==None or a=='') and i>1):
-                                    a=tables[i-2][3]
+                                    a=tables[i-2][2]
                                 if ((nf==None or nf=='') and i>1):
-                                    nf=tables[i-2][4]
-                                st.info("SCRITTI--++++++++++++++++++++++++++++++++---");
-                                st.info("-dirigente")
-                                st.info(a)
-                                st.info("-familiare")
-                                st.info(nf)
-                                st.info("-datafattura")
-                                st.info(b)
-                                st.info("-numerofattura")
-                                st.info(c)
-                                st.info("-rimborsato")
-                                st.info(d)
-                                st.info("---------------------------------------------------------");   
+                                    nf=tables[i-2][3]
+                            #    st.info("SCRITTI--++++++++++++++++++++++++++++++++---");
+                            #    st.info("-dirigente")
+                            #    st.info(a)
+                            #    st.info("-familiare")
+                            #    st.info(nf)
+                            #    st.info("-datafattura")
+                            #    st.info(b)
+                            #    st.info("-numerofattura")
+                            #    st.info(c)
+                            #    st.info("-rimborsato")
+                            #    st.info(d)
+                            #    st.info("---------------------------------------------------------");   
                                 dati_completi.append([s,dt,a,nf, b, c, d])
                             else:
                                 st.info("-rigaScartata")
@@ -159,7 +161,7 @@ def estrai_dati_da_pdf(lista_file_pdf):
                             #    st.info("-rimborsato")
                             #    st.info(d)
                             #    st.info("---------------------------------------------------------");
-                            #    dati_completi.append([s,dt,a,nf, b, c, d])
+                                dati_completi.append([s,dt,a,nf, b, c, d])
                             #else:
                             #     st.info("-rigaScartata")
 
@@ -168,7 +170,7 @@ def estrai_dati_da_pdf(lista_file_pdf):
     return pd.DataFrame(dati_completi, columns=colonne_selezionate)
 
 st.title("Estrazione Tabelle da PDF FasiOpen")
-st.info("Build 1.3.6 - 09/04/2025")
+st.info("Build 1.3.7 - 09/04/2025")
 
 file_caricati = st.file_uploader("Carica i file PDF o ZIP", type=["pdf","zip"], accept_multiple_files=True)
 
@@ -205,4 +207,3 @@ if file_caricati:
             )
         else:
             st.warning("Nessuna tabella trovata nei PDF!")
-
