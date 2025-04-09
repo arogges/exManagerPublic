@@ -59,19 +59,23 @@ def estrai_dati_da_pdf(lista_file_pdf):
                             b = tables[i][4]
                             c = tables[i][5]
                             d = tables[i][8]
-                            if (not(c==None) and d!= "0,00" and d!=""):
+                            if (not(c==None) and c!="" and not(d==None)  and d!= "0,00" and d!=""):
                                 if ((a==None or a=='') and i>0):
                                     a=tables[i-1][2]
                                 if ((nf==None or nf=='') and i>0):
-                                    nf=tables[i-1][3] 
-                            st.info("SCRITTI--++++++++++++++++++++++++++++++++---");
-                            st.info(a)
-                            st.info(nf)
-                            st.info(b)
-                            st.info(c)
-                            st.info(d)
-                            st.info("---------------------------------------------------------");   
-                            dati_completi.append([s,dt,a,nf, b, c, d])
+                                    nf=tables[i-1][3]
+                                if ((a==None or a=='') and i>1):
+                                    a=tables[i-2][2]
+                                if ((nf==None or nf=='') and i>1):
+                                    nf=tables[i-2][3]
+                                st.info("SCRITTI--++++++++++++++++++++++++++++++++---");
+                                st.info(a)
+                                st.info(nf)
+                                st.info(b)
+                                st.info(c)
+                                st.info(d)
+                                st.info("---------------------------------------------------------");   
+                                dati_completi.append([s,dt,a,nf, b, c, d])
                         if len(tables[i]) == 10:
                             st.info(tables[i])
                             st.info(len(tables[i]))
@@ -87,19 +91,23 @@ def estrai_dati_da_pdf(lista_file_pdf):
                             b = tables[i][4]
                             c = tables[i][5]
                             d = tables[i][9]
-                            if (not(c==None) and d!= "0,00" and d!=""):
+                            if (not(c==None) and c!="" and not(d==None)  and d!= "0,00" and d!=""):
                                 if ((a==None or a=='') and i>0):
                                     a=tables[i-1][2]
                                 if ((nf==None or nf=='') and i>0):
                                     nf=tables[i-1][3]
-                            st.info("SCRITTI--++++++++++++++++++++++++++++++++---");
-                            st.info(a)
-                            st.info(nf)
-                            st.info(b)
-                            st.info(c)
-                            st.info(d)
-                            st.info("---------------------------------------------------------");   
-                            dati_completi.append([s,dt,a,nf, b, c, d])
+                                if ((a==None or a=='') and i>1):
+                                    a=tables[i-2][2]
+                                if ((nf==None or nf=='') and i>1):
+                                    nf=tables[i-2][3]
+                                st.info("SCRITTI--++++++++++++++++++++++++++++++++---");
+                                st.info(a)
+                                st.info(nf)
+                                st.info(b)
+                                st.info(c)
+                                st.info(d)
+                                st.info("---------------------------------------------------------");   
+                                dati_completi.append([s,dt,a,nf, b, c, d])
                         if len(tables[i]) == 11:
                             st.info(tables[i])
                             st.info(len(tables[i]))
@@ -115,26 +123,30 @@ def estrai_dati_da_pdf(lista_file_pdf):
                             c = tables[i][5]
                             d = tables[i][10]
                             st.info("---------------------------------------------------------");
-                            if (not(c==None) and d!= "0,00" and d!=""):
+                            if (not(c==None) and c!="" and not(d==None)  and d!= "0,00" and d!=""):
                                 if ((a==None or a=='') and i>0):
                                     a=tables[i-1][2]
                                 if ((nf==None or nf=='') and i>0):
                                     nf=tables[i-1][3]
-                            st.info("SCRITTI--++++++++++++++++++++++++++++++++---");
-                            st.info(a)
-                            st.info(nf)
-                            st.info(b)
-                            st.info(c)
-                            st.info(d)
-                            st.info("---------------------------------------------------------");
-                            dati_completi.append([s,dt,a,nf, b, c, d])
+                                if ((a==None or a=='') and i>1):
+                                    a=tables[i-2][2]
+                                if ((nf==None or nf=='') and i>1):
+                                    nf=tables[i-2][3]
+                                st.info("SCRITTI--++++++++++++++++++++++++++++++++---");
+                                st.info(a)
+                                st.info(nf)
+                                st.info(b)
+                                st.info(c)
+                                st.info(d)
+                                st.info("---------------------------------------------------------");
+                                dati_completi.append([s,dt,a,nf, b, c, d])
 
     colonne_selezionate = ["Società Testata","Data Testata","Nominativo Dirigente","Nominativo Familiare", "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
     
     return pd.DataFrame(dati_completi, columns=colonne_selezionate)
 
 st.title("Estrazione Tabelle da PDF FasiOpen")
-st.info("Build 1.3.4 - 09/04/2025")
+st.info("Build 1.3.6 - 09/04/2025")
 
 file_caricati = st.file_uploader("Carica i file PDF o ZIP", type=["pdf","zip"], accept_multiple_files=True)
 
@@ -171,4 +183,3 @@ if file_caricati:
             )
         else:
             st.warning("Nessuna tabella trovata nei PDF!")
-
