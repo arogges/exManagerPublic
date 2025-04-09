@@ -47,74 +47,68 @@ def estrai_dati_da_pdf(lista_file_pdf):
                         if len(tables[i]) == 9:
                             st.info(tables[i])
                             st.info(len(tables[i]))
-                            st.info("-----------++++++++++++++++++++++++++++++++---");
+                            st.info("LETTI-----++++++++++++++++++++++++++++++++---");
+                            st.info(tables[i][2])
                             st.info(tables[i][3])
                             st.info(tables[i][4])
                             st.info(tables[i][5])
-                            st.info(tables[i][6])
-                            st.info(tables[i][9])
-                            st.info("---------------------------------------------------------");
-                            a = tables[i][3]
-                            nf= tables[i][4]
-                            b = tables[i][5]
-                            c = tables[i][6]
-                            d = tables[i][9]
+                            st.info(tables[i][8])
+                            st.info("-----------++++++++++++++++++++++++++++++++---");
+                            a = tables[i][2]
+                            nf= tables[i][3]
+                            b = tables[i][4]
+                            c = tables[i][5]
+                            d = tables[i][8]
                             if (not(c==None) and d!= "0,00" and d!=""):
                                 if ((a==None or a=='') and i>0):
-                                    a=tables[i-1][3]
+                                    a=tables[i-1][2]
                                 if ((nf==None or nf=='') and i>0):
-                                    nf=tables[i-1][4]     
-                                dati_completi.append([s,dt,a,nf, b, c, d])
+                                    nf=tables[i-1][3] 
+                            st.info("SCRITTI--++++++++++++++++++++++++++++++++---");
+                            st.info(a)
+                            st.info(nf)
+                            st.info(b)
+                            st.info(c)
+                            st.info(d)
+                            st.info("---------------------------------------------------------");   
+                            dati_completi.append([s,dt,a,nf, b, c, d])
                         if len(tables[i]) == 10:
                             st.info(tables[i])
                             st.info(len(tables[i]))
+                            st.info("LETTI------++++++++++++++++++++++++++++++++---");
+                            st.info(tables[i][2])
+                            st.info(tables[i][3])
+                            st.info(tables[i][4])
+                            st.info(tables[i][5])
+                            st.info(tables[i][9])
                             st.info("-----------++++++++++++++++++++++++++++++++---");
-                            st.info('3'+tables[i][3])
-                            st.info('4'+tables[i][4])
-                            st.info('5'+tables[i][5])
-                            st.info('6'+tables[i][6])
-                            st.info('7'+tables[i][7])
-                            st.info('8'+tables[i][8])
-                            st.info('9'+tables[i][9])
-                            st.info('10'+tables[i][10])
-                            st.info("---------------------------------------------------------");
-                            a = tables[i][3]
-                            nf= tables[i][4]
-                            b = tables[i][5]
-                            c = tables[i][6]
-                            d = tables[i][10]
+                            a = tables[i][2]
+                            nf= tables[i][3]
+                            b = tables[i][4]
+                            c = tables[i][5]
+                            d = tables[i][9]
                             if (not(c==None) and d!= "0,00" and d!=""):
                                 if ((a==None or a=='') and i>0):
-                                    a=tables[i-1][3]
+                                    a=tables[i-1][2]
                                 if ((nf==None or nf=='') and i>0):
-                                    nf=tables[i-1][4]     
-                                dati_completi.append([s,dt,a,nf, b, c, d])
+                                    nf=tables[i-1][3]
+                            st.info("SCRITTI--++++++++++++++++++++++++++++++++---");
+                            st.info(a)
+                            st.info(nf)
+                            st.info(b)
+                            st.info(c)
+                            st.info(d)
+                            st.info("---------------------------------------------------------");   
+                            dati_completi.append([s,dt,a,nf, b, c, d])
                         if len(tables[i]) == 11:
                             st.info(tables[i])
                             st.info(len(tables[i]))
-                            st.info("-----------++++++++++++++++++++++++++++++++---");
-                            if (not(tables[i][0]==None)):
-                                st.info('0 '+tables[i][0])
-                            if (not(tables[i][0]==None)):
-                                st.info('1 '+tables[i][1])
-                            if (not(tables[i][0]==None)):
-                                st.info('2 '+tables[i][2])
-                            if (not(tables[i][0]==None)):
-                                st.info('3 '+tables[i][3])
-                            if (not(tables[i][0]==None)):
-                                st.info('4 '+tables[i][4])
-                            if (not(tables[i][0]==None)):
-                                st.info('5 '+tables[i][5])
-                            if (not(tables[i][0]==None)):
-                                st.info('6 '+tables[i][6])
-                            if (not(tables[i][0]==None)):
-                                st.info('7 '+tables[i][7])
-                            if (not(tables[i][0]==None)):
-                                st.info('8 '+tables[i][8])
-                            if (not(tables[i][0]==None)):
-                                st.info('9 '+tables[i][9])
-                            if (not(tables[i][0]==None)):
-                                st.info('10 '+tables[i][10])
+                            st.info("LETTI--++++++++++++++++++++++++++++++++---");
+                            st.info(tables[i][2])
+                            st.info(tables[i][3])
+                            st.info(tables[i][4])
+                            st.info(tables[i][5])
+                            st.info(tables[i][10])
                             a = tables[i][2]
                             nf= tables[i][3]
                             b = tables[i][4]
@@ -123,10 +117,17 @@ def estrai_dati_da_pdf(lista_file_pdf):
                             st.info("---------------------------------------------------------");
                             if (not(c==None) and d!= "0,00" and d!=""):
                                 if ((a==None or a=='') and i>0):
-                                    a=tables[i-1][3]
+                                    a=tables[i-1][2]
                                 if ((nf==None or nf=='') and i>0):
-                                    nf=tables[i-1][4]     
-                            dati_completi.append([s,dt,a,nf, b, c, ])
+                                    nf=tables[i-1][3]
+                            st.info("SCRITTI--++++++++++++++++++++++++++++++++---");
+                            st.info(a)
+                            st.info(nf)
+                            st.info(b)
+                            st.info(c)
+                            st.info(d)
+                            st.info("---------------------------------------------------------");
+                            dati_completi.append([s,dt,a,nf, b, c, d])
 
     colonne_selezionate = ["Società Testata","Data Testata","Nominativo Dirigente","Nominativo Familiare", "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
     
@@ -170,3 +171,4 @@ if file_caricati:
             )
         else:
             st.warning("Nessuna tabella trovata nei PDF!")
+
