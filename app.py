@@ -85,16 +85,16 @@ def estrai_dati_da_pdf(lista_file_pdf):
                                     dati_completi.append([s,dt,a,nf, b, c, d])
                             else:
                                 if len(row) == 11:
+                                    st.info('3'+row[3])
+                                    st.info('4'+row[4])
+                                    st.info('5'+row[5])
+                                    st.info('6'+row[6])
+                                    st.info('11'+row[11])
                                     a = row[3]
                                     nf= row[4]
                                     b = row[5]
                                     c = row[6]
                                     d = row[11]
-                                    st.info(row[3])
-                                    st.info(row[4])
-                                    st.info(row[5])
-                                    st.info(row[6])
-                                    st.info(row[11])
                                     st.info("---------------------------------------------------------");
                                     if (not(c==None) and d!= "0,00" and d!=""):
                                         if ((a==None or a=='') and i>0):
