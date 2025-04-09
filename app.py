@@ -93,17 +93,28 @@ def estrai_dati_da_pdf(lista_file_pdf):
                             st.info(tables[i])
                             st.info(len(tables[i]))
                             st.info("-----------++++++++++++++++++++++++++++++++---");
-                            st.info('0'+tables[i][0])
-                            st.info('1'+tables[i][1])
-                            st.info('2'+tables[i][2])
-                            st.info('3'+tables[i][3])
-                            st.info('4'+tables[i][4])
-                            st.info('5'+tables[i][5])
-                            st.info('6'+tables[i][6])
-                            st.info('7'+tables[i][7])
-                            st.info('8'+tables[i][8])
-                            st.info('9'+tables[i][9])
-                            st.info('10'+tables[i][10])
+                            if (not(tables[i][0]==None)):
+                                st.info('0 '+tables[i][0])
+                            if (not(tables[i][0]==None)):
+                                st.info('1 '+tables[i][1])
+                            if (not(tables[i][0]==None)):
+                                st.info('2 '+tables[i][2])
+                            if (not(tables[i][0]==None)):
+                                st.info('3 '+tables[i][3])
+                            if (not(tables[i][0]==None)):
+                                st.info('4 '+tables[i][4])
+                            if (not(tables[i][0]==None)):
+                                st.info('5 '+tables[i][5])
+                            if (not(tables[i][0]==None)):
+                                st.info('6 '+tables[i][6])
+                            if (not(tables[i][0]==None)):
+                                st.info('7 '+tables[i][7])
+                            if (not(tables[i][0]==None)):
+                                st.info('8 '+tables[i][8])
+                            if (not(tables[i][0]==None)):
+                                st.info('9 '+tables[i][9])
+                            if (not(tables[i][0]==None)):
+                                st.info('10 '+tables[i][10])
                             a = tables[i][2]
                             nf= tables[i][3]
                             b = tables[i][4]
