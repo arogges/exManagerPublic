@@ -44,10 +44,10 @@ def estrai_dati_da_pdf(lista_file_pdf):
                 tables = page.extract_table()
                 if tables:
                      for i, row in enumerate(tables[1:], 1):
-                        st.info(tables[i])
-                        st.info(len(tables[i]))
-                        st.info("-----------++++++++++++++++++++++++++++++++---");
                         if len(tables[i]) == 9:
+                            st.info(tables[i])
+                            st.info(len(tables[i]))
+                            st.info("-----------++++++++++++++++++++++++++++++++---");
                             st.info(tables[i][3])
                             st.info(tables[i][4])
                             st.info(tables[i][5])
@@ -66,6 +66,9 @@ def estrai_dati_da_pdf(lista_file_pdf):
                                     nf=tables[i-1][4]     
                                 dati_completi.append([s,dt,a,nf, b, c, d])
                         if len(tables[i]) == 10:
+                            st.info(tables[i])
+                            st.info(len(tables[i]))
+                            st.info("-----------++++++++++++++++++++++++++++++++---");
                             st.info('3'+tables[i][3])
                             st.info('4'+tables[i][4])
                             st.info('5'+tables[i][5])
@@ -87,6 +90,9 @@ def estrai_dati_da_pdf(lista_file_pdf):
                                     nf=tables[i-1][4]     
                                 dati_completi.append([s,dt,a,nf, b, c, d])
                         if len(tables[i]) == 11:
+                            st.info(tables[i])
+                            st.info(len(tables[i]))
+                            st.info("-----------++++++++++++++++++++++++++++++++---");
                             st.info('3'+tables[i][3])
                             st.info('4'+tables[i][4])
                             st.info('5'+tables[i][5])
@@ -114,7 +120,7 @@ def estrai_dati_da_pdf(lista_file_pdf):
     return pd.DataFrame(dati_completi, columns=colonne_selezionate)
 
 st.title("Estrazione Tabelle da PDF FasiOpen")
-st.info("Build 1.3.2.5 - 09/04/2025")
+st.info("Build 1.3.2.6 - 09/04/2025")
 
 file_caricati = st.file_uploader("Carica i file PDF o ZIP", type=["pdf","zip"], accept_multiple_files=True)
 
