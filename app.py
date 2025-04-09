@@ -66,11 +66,14 @@ def estrai_dati_da_pdf(lista_file_pdf):
                                 dati_completi.append([s,dt,a,nf, b, c, d])
                         else:
                             if len(row) == 10:
-                                st.info(row[3])
-                                st.info(row[4])
-                                st.info(row[5])
-                                st.info(row[6])
-                                st.info(row[10])
+                                st.info('3'+row[3])
+                                st.info('4'+row[4])
+                                st.info('5'+row[5])
+                                st.info('6'+row[6])
+                                st.info('7'+row[7])
+                                st.info('8'+row[8])
+                                st.info('9'+row[9])
+                                st.info('10'+row[10])
                                 st.info("---------------------------------------------------------");
                                 a = row[3]
                                 nf= row[4]
