@@ -89,6 +89,10 @@ def estrai_dati_da_pdf(lista_file_pdf):
                                     st.info('4'+row[4])
                                     st.info('5'+row[5])
                                     st.info('6'+row[6])
+                                    st.info('7'+row[7])
+                                    st.info('8'+row[8])
+                                    st.info('9'+row[9])
+                                    st.info('10'+row[10])
                                     st.info('11'+row[11])
                                     a = row[3]
                                     nf= row[4]
