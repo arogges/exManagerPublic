@@ -45,74 +45,69 @@ def estrai_dati_da_pdf(lista_file_pdf):
                 if tables:
                      for i, row in enumerate(tables[1:], 1):
                         st.info(tables[i])
+                        st.info(len(tables[i]))
                         st.info("-----------++++++++++++++++++++++++++++++++---");
-                        st.info(row)
-                        st.info(len(row))
-                        if len(row) == 9:
-                            st.info(row[3])
-                            st.info(row[4])
-                            st.info(row[5])
-                            st.info(row[6])
-                            st.info(row[9])
+                        if len(tables[i]) == 9:
+                            st.info(tables[i][3])
+                            st.info(tables[i][4])
+                            st.info(tables[i][5])
+                            st.info(tables[i][6])
+                            st.info(tables[i][9])
                             st.info("---------------------------------------------------------");
-                            a = row[3]
-                            nf= row[4]
-                            b = row[5]
-                            c = row[6]
-                            d = row[9]
+                            a = tables[i][3]
+                            nf= tables[i][4]
+                            b = tables[i][5]
+                            c = tables[i][6]
+                            d = tables[i][9]
                             if (not(c==None) and d!= "0,00" and d!=""):
                                 if ((a==None or a=='') and i>0):
                                     a=tables[i-1][3]
                                 if ((nf==None or nf=='') and i>0):
                                     nf=tables[i-1][4]     
                                 dati_completi.append([s,dt,a,nf, b, c, d])
-                        else:
-                            if len(row) == 10:
-                                st.info('3'+row[3])
-                                st.info('4'+row[4])
-                                st.info('5'+row[5])
-                                st.info('6'+row[6])
-                                st.info('7'+row[7])
-                                st.info('8'+row[8])
-                                st.info('9'+row[9])
-                                st.info('10'+row[10])
-                                st.info("---------------------------------------------------------");
-                                a = row[3]
-                                nf= row[4]
-                                b = row[5]
-                                c = row[6]
-                                d = row[10]
-                                if (not(c==None) and d!= "0,00" and d!=""):
-                                    if ((a==None or a=='') and i>0):
-                                        a=tables[i-1][3]
-                                    if ((nf==None or nf=='') and i>0):
-                                        nf=tables[i-1][4]     
-                                    dati_completi.append([s,dt,a,nf, b, c, d])
-                            else:
-                                if len(row) == 11:
-                                    st.info('3'+row[3])
-                                    st.info('4'+row[4])
-                                    st.info('5'+row[5])
-                                    st.info('6'+row[6])
-                                    st.info('7'+row[7])
-                                    st.info('8'+row[8])
-                                    st.info('9'+row[9])
-                                    st.info('10'+row[10])
-                                    st.info('11'+row[11])
-                                    a = row[3]
-                                    nf= row[4]
-                                    b = row[5]
-                                    c = row[6]
-                                    d = row[11]
-                                    st.info("---------------------------------------------------------");
-                                    if (not(c==None) and d!= "0,00" and d!=""):
-                                        if ((a==None or a=='') and i>0):
-                                            a=tables[i-1][3]
-                                        if ((nf==None or nf=='') and i>0):
-                                            nf=tables[i-1][4]     
-                                    dati_completi.append([s,dt,a,nf, b, c, d])
-                                else:
-                                    st.info("lunghezza row errata")
+                        if len(tables[i]) == 10:
+                            st.info('3'+tables[i][3])
+                            st.info('4'+tables[i][4])
+                            st.info('5'+tables[i][5])
+                            st.info('6'+tables[i][6])
+                            st.info('7'+tables[i][7])
+                            st.info('8'+tables[i][8])
+                            st.info('9'+tables[i][9])
+                            st.info('10'+tables[i][10])
+                            st.info("---------------------------------------------------------");
+                            a = tables[i][3]
+                            nf= tables[i][4]
+                            b = tables[i][5]
+                            c = tables[i][6]
+                            d = tables[i][10]
+                            if (not(c==None) and d!= "0,00" and d!=""):
+                                if ((a==None or a=='') and i>0):
+                                    a=tables[i-1][3]
+                                if ((nf==None or nf=='') and i>0):
+                                    nf=tables[i-1][4]     
+                                dati_completi.append([s,dt,a,nf, b, c, d])
+                        if len(tables[i]) == 11:
+                            st.info('3'+tables[i][3])
+                            st.info('4'+tables[i][4])
+                            st.info('5'+tables[i][5])
+                            st.info('6'+tables[i][6])
+                            st.info('7'+tables[i][7])
+                            st.info('8'+tables[i][8])
+                            st.info('9'+tables[i][9])
+                            st.info('10'+tables[i][10])
+                            st.info('11'+tables[i][11])
+                            a = tables[i][3]
+                            nf= tables[i][4]
+                            b = tables[i][5]
+                            c = tables[i][6]
+                            d = tables[i][11]
+                            st.info("---------------------------------------------------------");
+                            if (not(c==None) and d!= "0,00" and d!=""):
+                                if ((a==None or a=='') and i>0):
+                                    a=tables[i-1][3]
+                                if ((nf==None or nf=='') and i>0):
+                                    nf=tables[i-1][4]     
+                            dati_completi.append([s,dt,a,nf, b, c, ])
 
     colonne_selezionate = ["Società Testata","Data Testata","Nominativo Dirigente","Nominativo Familiare", "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
     
