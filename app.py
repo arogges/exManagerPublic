@@ -151,7 +151,7 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
     return df, file_con_errori
 
 st.title("Estrazione Tabelle da PDF FasiOpen")
-st.info("Build 1.4.0 - 19/05/2025")
+st.info("Build 1.4.1 - 19/05/2025")
 
 file_caricati = st.file_uploader("Carica i file PDF o ZIP", type=["pdf","zip"], accept_multiple_files=True)
 
