@@ -260,7 +260,7 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
     df = pd.DataFrame(dati_completi, columns=colonne_selezionate)
     return df, file_con_errori
 
-st.title("Estrazione Tabelle da PDF FasiOpen")
+st.title("Estrazione Tabelle da PDF")
 st.info("Build 1.5.1 - 06/06/2025 - Supporto doppio formato")
 
 # Creo due sezioni separate per i due tipi di file
