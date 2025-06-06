@@ -312,7 +312,7 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
     return df, file_con_errori
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.5.1 - 06/06/2025 - Supporto doppio formato")
+st.info("Build 1.5.2 - 06/06/2025 - Supporto doppio formato")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
