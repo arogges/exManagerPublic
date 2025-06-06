@@ -42,8 +42,14 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
     """
     try:
         with pdfplumber.open(file_pdf) as pdf:
+            st.info(f"🔍 DEBUG: Analizzando {file_name} - Numero pagine: {len(pdf.pages)}")
+            
             # Estrai informazioni dalla prima pagina
             first_page_text = pdf.pages[0].extract_text()
+            
+            # DEBUG: Mostra parte del testo della prima pagina
+            if st.checkbox(f"🔍 DEBUG: Mostra testo prima pagina di {file_name}", key=f"debug1_{file_name}"):
+                st.text(first_page_text[:500] + "...")
             
             # Estrai la società/fornitore (prima riga del documento)
             societa_match = re.search(r"^(.+?)\n", first_page_text)
@@ -53,13 +59,30 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
             data_match = re.search(r"Roma,\s*(\d{2}/\d{2}/\d{4})", first_page_text)
             data_documento = data_match.group(1) if data_match else "no_data"
             
+            st.info(f"📊 DEBUG: Società: {societa}, Data: {data_documento}")
+            
             # Analizza la seconda pagina per i dati della tabella
             if len(pdf.pages) < 2:
                 st.warning(f"Il file {file_name} non ha una seconda pagina")
                 return []
             
             second_page = pdf.pages[1]
+            second_page_text = second_page.extract_text()
+            
+            # DEBUG: Mostra testo seconda pagina
+            if st.checkbox(f"🔍 DEBUG: Mostra testo seconda pagina di {file_name}", key=f"debug2_{file_name}"):
+                st.text(second_page_text[:1000] + "...")
+            
             tables = second_page.extract_table()
+            
+            st.info(f"📋 DEBUG: Tabella trovata: {tables is not None}")
+            if tables:
+                st.info(f"📋 DEBUG: Numero righe tabella: {len(tables)}")
+                
+                # DEBUG: Mostra le prime righe della tabella
+                if st.checkbox(f"🔍 DEBUG: Mostra prime righe tabella di {file_name}", key=f"debug3_{file_name}"):
+                    for i, row in enumerate(tables[:5]):
+                        st.write(f"Riga {i}: {row}")
             
             dati_estratti = []
             
@@ -69,28 +92,49 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                 for i, row in enumerate(tables):
                     if row and any(cell and ("Iscritto Principale" in str(cell) or "Main Client" in str(cell)) for cell in row):
                         header_row_idx = i
+                        st.info(f"📋 DEBUG: Header trovato alla riga {i}")
                         break
                 
+                if header_row_idx is None:
+                    st.warning(f"Header non trovato in {file_name}. Cerco pattern alternativi...")
+                    # Proviamo a cercare altre intestazioni
+                    for i, row in enumerate(tables):
+                        if row and any(cell and ("FasiOpen" in str(cell) or "Nominativo" in str(cell)) for cell in row if cell):
+                            header_row_idx = i
+                            st.info(f"📋 DEBUG: Header alternativo trovato alla riga {i}")
+                            break
+                
                 if header_row_idx is not None:
+                    st.info(f"📋 DEBUG: Processando righe da {header_row_idx + 1} a {len(tables)}")
+                    
                     # Processa le righe dopo l'intestazione
                     current_nominativo = None
                     
                     for i in range(header_row_idx + 1, len(tables)):
                         row = tables[i]
-                        if not row or len(row) < 6:
+                        if not row:
+                            continue
+                        
+                        st.info(f"📋 DEBUG: Riga {i} - Lunghezza: {len(row)} - Contenuto: {row}")
+                        
+                        if len(row) < 6:
+                            st.warning(f"Riga {i} troppo corta, saltata")
                             continue
                         
                         # Salta le righe "Totale"
                         if row and any(cell and "Totale" in str(cell) for cell in row if cell):
+                            st.info(f"Riga {i} è un totale, saltata")
                             continue
                         
                         # Estrai i dati dalla riga
-                        cod_fasiopen = row[0] if row[0] else ""
-                        nominativo = row[1] if row[1] else ""
-                        nominativo_familiare = row[2] if row[2] else ""
-                        data_fattura = row[3] if row[3] else ""
-                        numero_fattura = row[4] if row[4] else ""
+                        cod_fasiopen = row[0] if len(row) > 0 and row[0] else ""
+                        nominativo = row[1] if len(row) > 1 and row[1] else ""
+                        nominativo_familiare = row[2] if len(row) > 2 and row[2] else ""
+                        data_fattura = row[3] if len(row) > 3 and row[3] else ""
+                        numero_fattura = row[4] if len(row) > 4 and row[4] else ""
                         importo_liquidato = row[6] if len(row) > 6 and row[6] else ""
+                        
+                        st.info(f"📋 DEBUG: Estratti - Nom: '{nominativo}', Data: '{data_fattura}', Num: '{numero_fattura}', Imp: '{importo_liquidato}'")
                         
                         # Se il nominativo è vuoto, usa quello precedente
                         if nominativo and nominativo.strip():
@@ -101,7 +145,7 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                         # Aggiungi solo se abbiamo dati significativi
                         if (data_fattura and numero_fattura and importo_liquidato and 
                             importo_liquidato != "0,00" and importo_liquidato.strip() != ""):
-                            dati_estratti.append([
+                            record = [
                                 societa,
                                 data_documento,
                                 nominativo,
@@ -109,8 +153,15 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                                 data_fattura,
                                 numero_fattura,
                                 importo_liquidato
-                            ])
+                            ]
+                            dati_estratti.append(record)
+                            st.success(f"✅ Riga {i} aggiunta: {record}")
+                        else:
+                            st.warning(f"Riga {i} non ha dati significativi o importo = 0,00")
+                else:
+                    st.error(f"Nessun header trovato nel file {file_name}")
             
+            st.info(f"📊 DEBUG: Totale righe estratte da {file_name}: {len(dati_estratti)}")
             return dati_estratti
             
     except Exception as e:
