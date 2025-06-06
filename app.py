@@ -118,12 +118,12 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                  #       st.info(f"📋 DEBUG: Riga {i} - Lunghezza: {len(row)} - Contenuto: {row}")
                         
                         if len(row) < 6:
-                            st.warning(f"Riga {i} troppo corta, saltata")
+                          #  st.warning(f"Riga {i} troppo corta, saltata")
                             continue
                         
                         # Salta le righe "Totale"
                         if row and any(cell and "Totale" in str(cell) for cell in row if cell):
-                            st.info(f"Riga {i} è un totale, saltata")
+                           # st.info(f"Riga {i} è un totale, saltata")
                             continue
                         
                         # Estrai i dati dalla riga
@@ -156,8 +156,8 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                             ]
                             dati_estratti.append(record)
                    #         st.success(f"✅ Riga {i} aggiunta: {record}")
-                        else:
-                            st.warning(f"Riga {i} non ha dati significativi o importo = 0,00")
+                   #     else:
+                   #         st.warning(f"Riga {i} non ha dati significativi o importo = 0,00")
                 else:
                     st.error(f"Nessun header trovato nel file {file_name}")
             
