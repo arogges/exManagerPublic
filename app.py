@@ -76,7 +76,7 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
             tables = second_page.extract_table()
             
            # st.info(f"📋 DEBUG: Tabella trovata: {tables is not None}")
-            if tables:
+           # if tables:
             #    st.info(f"📋 DEBUG: Numero righe tabella: {len(tables)}")
                 
                 # DEBUG: Mostra le prime righe della tabella
