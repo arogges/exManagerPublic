@@ -276,7 +276,7 @@ with col1:
 
 with col2:
     st.subheader("📋 Formato FasiOpen")
-    st.caption("File PDF/ZIP con formato tabelle Fasioen")
+    st.caption("File PDF/ZIP con formato tabelle FasiOpen")
     file_nuovi = st.file_uploader("Carica i file PDF o ZIP (FasiOpen)", 
                                  type=["pdf","zip"], 
                                  accept_multiple_files=True,
@@ -411,9 +411,7 @@ if not file_originali and not file_nuovi:
     
     with st.expander("ℹ️ Informazioni sui formati supportati"):
         st.write("""
-        **Formato Originale**: File PDF Fasi con tabelle complesse multi-colonna (9, 10, 11 colonne)
-        
-        **Nuovo Formato**: File PDF FasiOpen (come l'esempio 011-FasiOpen.pdf)
+        **Formati**: File PDF Fasi con tabelle complesse multi-colonna (9, 10, 11 colonne) e File PDF FasiOpen.
         
         Lo script può elaborare entrambi i formati contemporaneamente e creerà un file Excel con fogli separati per ogni formato.
         """)
