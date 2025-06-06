@@ -42,7 +42,7 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
     """
     try:
         with pdfplumber.open(file_pdf) as pdf:
-            st.info(f"🔍 DEBUG: Analizzando {file_name} - Numero pagine: {len(pdf.pages)}")
+            #st.info(f"🔍 DEBUG: Analizzando {file_name} - Numero pagine: {len(pdf.pages)}")
             
             # Estrai informazioni dalla prima pagina
             first_page_text = pdf.pages[0].extract_text()
@@ -59,7 +59,7 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
             data_match = re.search(r"Roma,\s*(\d{2}/\d{2}/\d{4})", first_page_text)
             data_documento = data_match.group(1) if data_match else "no_data"
             
-            st.info(f"📊 DEBUG: Società: {societa}, Data: {data_documento}")
+            #st.info(f"📊 DEBUG: Società: {societa}, Data: {data_documento}")
             
             # Analizza la seconda pagina per i dati della tabella
             if len(pdf.pages) < 2:
