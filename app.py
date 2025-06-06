@@ -267,17 +267,17 @@ st.info("Build 1.5.0 - 06/06/2025 - Supporto doppio formato")
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("📊 Formato Originale")
-    st.caption("File PDF/ZIP con formato tabelle complesse")
-    file_originali = st.file_uploader("Carica i file PDF o ZIP (formato originale)", 
+    st.subheader("📊 Formato Fasi")
+    st.caption("File PDF/ZIP con formato tabelle Fasi")
+    file_originali = st.file_uploader("Carica i file PDF o ZIP (Fasi)", 
                                      type=["pdf","zip"], 
                                      accept_multiple_files=True,
                                      key="originali")
 
 with col2:
-    st.subheader("📋 Nuovo Formato")
-    st.caption("File PDF/ZIP con formato tabelle semplici (seconda pagina)")
-    file_nuovi = st.file_uploader("Carica i file PDF o ZIP (nuovo formato)", 
+    st.subheader("📋 Formato FasiOpen")
+    st.caption("File PDF/ZIP con formato tabelle Fasioen")
+    file_nuovi = st.file_uploader("Carica i file PDF o ZIP (FasiOpen)", 
                                  type=["pdf","zip"], 
                                  accept_multiple_files=True,
                                  key="nuovi")
@@ -287,9 +287,9 @@ df_originali = pd.DataFrame()
 errori_originali = []
 
 if file_originali:
-    st.success(f"📊 {len(file_originali)} file formato originale caricati!")
+    st.success(f"📊 {len(file_originali)} file Fasi!")
     
-    with st.spinner("Elaborazione file formato originale..."):
+    with st.spinner("Elaborazione file formato Fasi..."):
         lista_pdf_orig = []
         nomi_pdf_orig = []
         
@@ -310,9 +310,9 @@ df_nuovi = pd.DataFrame()
 errori_nuovi = []
 
 if file_nuovi:
-    st.success(f"📋 {len(file_nuovi)} file nuovo formato caricati!")
+    st.success(f"📋 {len(file_nuovi)} file FasiOpen!")
     
-    with st.spinner("Elaborazione file nuovo formato..."):
+    with st.spinner("Elaborazione file formato FasiOpen..."):
         lista_pdf_nuovi = []
         nomi_pdf_nuovi = []
         
@@ -350,11 +350,11 @@ if not df_originali.empty or not df_nuovi.empty:
         
         with col_stat1:
             if not df_originali.empty:
-                st.metric("Righe Formato Originale", len(df_originali))
+                st.metric("Righe Formato Fasi", len(df_originali))
         
         with col_stat2:
             if not df_nuovi.empty:
-                st.metric("Righe Nuovo Formato", len(df_nuovi))
+                st.metric("Righe Formato FasiOpen", len(df_nuovi))
         
         st.write("### Statistiche Totali")
         st.write(f"- Numero totale di righe estratte: {len(df_finale)}")
