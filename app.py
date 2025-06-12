@@ -471,8 +471,8 @@ if not file_originali and not file_nuovi:
 st.title("Filtraggio SEQ da Dettaglio Pagamenti")
 
 # Caricamento file
-incassi_file = st.file_uploader("Carica il file 'Incassi_da_allocare.xls'", type=["xls"])
-dettagli_file = st.file_uploader("Carica il file 'Dettaglio_pagamenti.xls'", type=["xls"])
+incassi_file = st.file_uploader("Carica il file 'Incassi_da_allocare' (.xls o .xlsx)", type=["xls", "xlsx"])
+dettagli_file = st.file_uploader("Carica il file 'Dettaglio_pagamenti' (.xls o .xlsx)", type=["xls", "xlsx"])
 
 if incassi_file and dettagli_file:
     # Lettura dei file Excel
