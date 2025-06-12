@@ -468,7 +468,7 @@ if not file_originali and not file_nuovi:
         """)
 
 
-st.title("Filtraggio SEQ da Dettaglio Pagamenti")
+st.title("Riconciliazione Incassi")
 
 # Caricamento file
 incassi_file = st.file_uploader("Carica il file 'Incassi_da_allocare' (.xls o .xlsx)", type=["xls", "xlsx"])
@@ -494,18 +494,25 @@ if incassi_file and dettagli_file:
 
     seq_set = set(seq_matches)
 
-    st.info(f"Trovati {len(seq_set)} SEQ unici nel file 'Incassi_da_allocare.xls'")
+    st.info(f"Trovati {len(seq_set)} SEQ unici nel file Incassi da Allocare")
+
+    def estrai_seq_numerico(valore):
+        if pd.isna(valore):
+            return None
+        match = re.search(r"\d+", str(valore))
+        return match.group(0) if match else None
 
     # Filtro dei dettagli pagamenti
     if 'SEQ' in df_dettagli.columns:
-        df_filtrato = df_dettagli[df_dettagli['SEQ'].astype(str).isin(seq_set)]
+        df_dettagli['SEQ_PULITO'] = df_dettagli['SEQ'].apply(estrai_seq_numerico)
+
+        df_filtrato = df_dettagli[df_dettagli['SEQ_PULITO'].isin(seq_set)]
 
         st.subheader("Righe filtrate dal Dettaglio Pagamenti")
-        st.write(df_filtrato)
 
         # Download Excel
         output = BytesIO()
-        df_filtrato.to_excel(output, index=False)
+        df_filtrato.drop(columns=["SEQ_PULITO"]).to_excel(output, index=False)
         output.seek(0)
 
         st.download_button(
