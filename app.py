@@ -489,7 +489,7 @@ if incassi_file and dettagli_file:
     text_data = df_incassi.astype(str).values.ravel()
     seq_matches = []
     for cell in text_data:
-        found = re.findall(r"(?i)seq\s*:\s*(\d+)", cell)
+        found = re.findall(r"(?i)seq\s*[:.]\s*(\d+)", cell)
         seq_matches.extend(found)
 
     seq_set = set(seq_matches)
