@@ -466,3 +466,53 @@ if not file_originali and not file_nuovi:
         
         Lo script può elaborare entrambi i formati contemporaneamente e creerà un file Excel con fogli separati per ogni formato.
         """)
+
+
+st.title("Filtraggio SEQ da Dettaglio Pagamenti")
+
+# Caricamento file
+incassi_file = st.file_uploader("Carica il file 'Incassi_da_allocare.xls'", type=["xls"])
+dettagli_file = st.file_uploader("Carica il file 'Dettaglio_pagamenti.xls'", type=["xls"])
+
+if incassi_file and dettagli_file:
+    # Lettura dei file Excel
+    df_incassi = pd.read_excel(incassi_file, dtype=str)
+    df_dettagli = pd.read_excel(dettagli_file, dtype=str)
+
+    st.subheader("Anteprima - Incassi da allocare")
+    st.write(df_incassi.head())
+
+    st.subheader("Anteprima - Dettaglio pagamenti")
+    st.write(df_dettagli.head())
+
+    # Estrazione SEQ da testo (tutte le celle)
+    text_data = df_incassi.astype(str).values.ravel()
+    seq_matches = []
+    for cell in text_data:
+        found = re.findall(r"(?i)seq\s*:\s*(\d+)", cell)
+        seq_matches.extend(found)
+
+    seq_set = set(seq_matches)
+
+    st.info(f"Trovati {len(seq_set)} SEQ unici nel file 'Incassi_da_allocare.xls'")
+
+    # Filtro dei dettagli pagamenti
+    if 'SEQ' in df_dettagli.columns:
+        df_filtrato = df_dettagli[df_dettagli['SEQ'].astype(str).isin(seq_set)]
+
+        st.subheader("Righe filtrate dal Dettaglio Pagamenti")
+        st.write(df_filtrato)
+
+        # Download Excel
+        output = BytesIO()
+        df_filtrato.to_excel(output, index=False)
+        output.seek(0)
+
+        st.download_button(
+            label="📥 Scarica risultati filtrati",
+            data=output,
+            file_name="dettagli_filtrati.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    else:
+        st.error("❌ La colonna 'SEQ' non è presente nel file 'Dettaglio_pagamenti.xls'")
