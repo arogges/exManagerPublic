@@ -7,6 +7,7 @@ import zipfile
 from datetime import datetime
 import traceback
 import os
+from io import BytesIO
 
 
 def estrai_testo_da_pdf_testata(file_pdf, file_name):
