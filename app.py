@@ -312,7 +312,7 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
     return df, file_con_errori
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.5.2 - 06/06/2025 - Supporto doppio formato")
+st.info("Build 1.5.3 - 12/06/2025 - Supporto doppio formato")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
@@ -503,8 +503,8 @@ if incassi_file and dettagli_file:
         return match.group(0) if match else None
 
     # Filtro dei dettagli pagamenti
-    if 'SEQ' in df_dettagli.columns:
-        df_dettagli['SEQ_PULITO'] = df_dettagli['SEQ'].apply(estrai_seq_numerico)
+    if 'Seq' in df_dettagli.columns:
+        df_dettagli['SEQ_PULITO'] = df_dettagli['Seq'].apply(estrai_seq_numerico)
 
         df_filtrato = df_dettagli[df_dettagli['SEQ_PULITO'].isin(seq_set)]
 
