@@ -508,9 +508,10 @@ if incassi_file and dettagli_file:
 
         df_filtrato = df_dettagli[df_dettagli['SEQ_PULITO'].isin(seq_set)]
 
-        st.subheader("Righe filtrate dal Dettaglio Pagamenti")
+        st.subheader("Righe filtrate da Dettaglio Pagamenti")
+        st.write(df_filtrato.drop(columns=["SEQ_PULITO"]))
 
-        # Download Excel
+        # Download file
         output = BytesIO()
         df_filtrato.drop(columns=["SEQ_PULITO"]).to_excel(output, index=False)
         output.seek(0)
@@ -522,4 +523,4 @@ if incassi_file and dettagli_file:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     else:
-        st.error("❌ La colonna 'SEQ' non è presente nel file 'Dettaglio_pagamenti.xls'")
+        st.error("❌ La colonna 'Seq' non è presente nel file 'Dettaglio_pagamenti'")
