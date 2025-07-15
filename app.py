@@ -8,6 +8,7 @@ from datetime import datetime
 import traceback
 import os
 from io import BytesIO
+from pathlib import Path
 
 
 def estrai_testo_da_pdf_testata(file_pdf, file_name):
@@ -313,7 +314,7 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
     return df, file_con_errori
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.5.3 - 12/06/2025 - Supporto doppio formato")
+st.info("Build 1.5.4 - 15/06/2025 - SplitExcel")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
@@ -525,3 +526,227 @@ if incassi_file and dettagli_file:
         )
     else:
         st.error("❌ La colonna 'Seq' non è presente nel file 'Dettaglio_pagamenti'")
+        
+        
+st.set_page_config(
+    page_title="Divisore Excel per Cliniche",
+    page_icon="🏥",
+    layout="wide"
+)
+
+def validate_clinica_file(df):
+    """
+    Valida che il dataframe contenga le colonne attese per i dati delle cliniche.
+    """
+    expected_columns = [
+        "CLINICA", "AM", "DM", "TIPOLOGIA", "TIPOLOGIA INCASSO", 
+        "DATA OPERAZIONE", "DATA VALUTA", "IMPORTO", "DESCRIZIONE", 
+        "NUMERO INT CODE", "PREVENTIVO", "CODICE FINANZIAMENTO", 
+        "RAGIONE SOCIALE FINANZIARIA"
+    ]
+    
+    # Verifica presenza colonna CLINICA
+    if "CLINICA" not in df.columns:
+        return False, "Colonna 'CLINICA' non trovata!"
+    
+    return True, "File valido"
+
+def split_excel_by_clinica(df):
+    """
+    Divide il dataframe in base ai valori della colonna CLINICA.
+    
+    Returns:
+        dict: Dictionary con chiave=nome_clinica, valore=dataframe_clinica
+    """
+    cliniche_data = {}
+    
+    # Raggruppa per clinica
+    grouped = df.groupby("CLINICA")
+    
+    for clinica_name, group in grouped:
+        # Pulisci il nome della clinica per renderlo sicuro come nome file
+        safe_name = str(clinica_name).replace("/", "_").replace("\\", "_").replace(":", "_").replace("*", "_").replace("?", "_").replace("\"", "_").replace("<", "_").replace(">", "_").replace("|", "_")
+        cliniche_data[safe_name] = group
+    
+    return cliniche_data
+
+def create_zip_file(cliniche_data):
+    """
+    Crea un file ZIP contenente tutti i file Excel delle cliniche.
+    """
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for clinica_name, df_clinica in cliniche_data.items():
+            # Crea il file Excel in memoria
+            excel_buffer = io.BytesIO()
+            df_clinica.to_excel(excel_buffer, index=False, engine='openpyxl')
+            excel_buffer.seek(0)
+            
+            # Aggiungi al ZIP
+            zip_file.writestr(f"{clinica_name}.xlsx", excel_buffer.read())
+    
+    zip_buffer.seek(0)
+    return zip_buffer
+
+def main():
+    # Titolo dell'app
+    st.title("🏥 Divisore Excel per Cliniche")
+    st.markdown("---")
+    
+    # Descrizione
+    st.markdown("""
+    ### 📋 Questa app divide un file Excel in base ai valori della colonna CLINICA
+    
+    **Funzionalità:**
+    - Carica un file Excel con dati delle cliniche
+    - Divide automaticamente i dati per ogni clinica
+    - Scarica tutti i file in un archivio ZIP
+    """)
+    
+    # Sidebar per informazioni
+    with st.sidebar:
+        st.header("ℹ️ Informazioni")
+        st.markdown("""
+        **Colonne richieste:**
+        - CLINICA (obbligatoria)
+        - AM, DM, TIPOLOGIA
+        - TIPOLOGIA INCASSO
+        - DATA OPERAZIONE
+        - DATA VALUTA
+        - IMPORTO, DESCRIZIONE
+        - NUMERO INT CODE
+        - PREVENTIVO
+        - CODICE FINANZIAMENTO
+        - RAGIONE SOCIALE FINANZIARIA
+        """)
+    
+    # Upload del file
+    uploaded_file = st.file_uploader(
+        "📁 Carica il file Excel",
+        type=['xlsx', 'xls'],
+        help="Seleziona un file Excel con i dati delle cliniche"
+    )
+    
+    if uploaded_file is not None:
+        try:
+            # Leggi il file Excel
+            with st.spinner("📖 Lettura del file Excel..."):
+                df = pd.read_excel(uploaded_file)
+            
+            # Mostra informazioni sul file
+            st.success(f"✅ File caricato con successo! ({len(df)} righe, {len(df.columns)} colonne)")
+            
+            # Validazione
+            is_valid, message = validate_clinica_file(df)
+            
+            if not is_valid:
+                st.error(f"❌ {message}")
+                st.stop()
+            
+            # Mostra anteprima del file
+            with st.expander("👀 Anteprima dati (prime 5 righe)"):
+                st.dataframe(df.head())
+            
+            # Analisi delle cliniche
+            st.markdown("### 🏥 Analisi Cliniche")
+            
+            unique_clinics = df["CLINICA"].unique()
+            clinic_counts = df["CLINICA"].value_counts()
+            
+            # Statistiche principali
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("Totale Cliniche", len(unique_clinics))
+            
+            with col2:
+                st.metric("Totale Operazioni", len(df))
+            
+            with col3:
+                avg_operations = len(df) / len(unique_clinics)
+                st.metric("Media Operazioni/Clinica", f"{avg_operations:.1f}")
+            
+            # Tabella dettagliata delle cliniche
+            st.markdown("#### 📊 Dettaglio per Clinica")
+            
+            clinic_summary = pd.DataFrame({
+                'Clinica': clinic_counts.index,
+                'Numero Operazioni': clinic_counts.values,
+                'Percentuale': (clinic_counts.values / len(df) * 100).round(1)
+            }).reset_index(drop=True)
+            
+            st.dataframe(clinic_summary, use_container_width=True)
+            
+            # Grafico a barre
+            st.markdown("#### 📈 Grafico Operazioni per Clinica")
+            st.bar_chart(clinic_counts)
+            
+            # Pulsante per elaborare
+            st.markdown("---")
+            
+            if st.button("🔄 Dividi File per Cliniche", type="primary", use_container_width=True):
+                
+                with st.spinner("⚙️ Elaborazione in corso..."):
+                    # Dividi i dati
+                    cliniche_data = split_excel_by_clinica(df)
+                    
+                    # Crea il file ZIP
+                    zip_buffer = create_zip_file(cliniche_data)
+                
+                st.success("✅ Elaborazione completata!")
+                
+                # Mostra risultati
+                st.markdown("### 📁 File Creati")
+                
+                result_data = []
+                for clinica_name, df_clinica in cliniche_data.items():
+                    result_data.append({
+                        'File': f"{clinica_name}.xlsx",
+                        'Righe': len(df_clinica),
+                        'Clinica': clinica_name
+                    })
+                
+                result_df = pd.DataFrame(result_data)
+                st.dataframe(result_df, use_container_width=True)
+                
+                # Pulsante download
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                zip_filename = f"cliniche_divise_{timestamp}.zip"
+                
+                st.download_button(
+                    label="📥 Scarica tutti i file (ZIP)",
+                    data=zip_buffer,
+                    file_name=zip_filename,
+                    mime="application/zip",
+                    use_container_width=True
+                )
+                
+                st.markdown("---")
+                st.info(f"📋 Creati {len(cliniche_data)} file Excel, uno per ogni clinica")
+        
+        except Exception as e:
+            st.error(f"❌ Errore durante l'elaborazione: {str(e)}")
+            st.markdown("**Possibili cause:**")
+            st.markdown("- File Excel corrotto o formato non supportato")
+            st.markdown("- Colonne mancanti o nomi diversi")
+            st.markdown("- Problemi di encoding del file")
+    
+    else:
+        # Messaggio quando non c'è file caricato
+        st.info("👆 Carica un file Excel per iniziare")
+        
+        # Esempio di formato file atteso
+        with st.expander("💡 Formato file atteso"):
+            st.markdown("""
+            Il file Excel deve contenere almeno queste colonne:
+            
+            | CLINICA | AM | DM | TIPOLOGIA | TIPOLOGIA INCASSO | DATA OPERAZIONE | ... |
+            |---------|----|----|-----------|-------------------|-----------------|-----|
+            | Clinica A | ... | ... | ... | ... | 2024-01-15 | ... |
+            | Clinica B | ... | ... | ... | ... | 2024-01-16 | ... |
+            | Clinica A | ... | ... | ... | ... | 2024-01-17 | ... |
+            """)
+
+if __name__ == "__main__":
+    main()
