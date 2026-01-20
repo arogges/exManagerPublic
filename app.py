@@ -53,13 +53,25 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
             #if st.checkbox(f"🔍 DEBUG: Mostra testo prima pagina di {file_name}", key=f"debug1_{file_name}"):
             #    st.text(first_page_text[:500] + "...")
             
-            # Estrai la società/fornitore (prima riga del documento)
-            societa_match = re.search(r"^(.+?)\n", first_page_text)
-            societa = societa_match.group(1).strip() if societa_match else "no_societa"
-            
-            # Estrai la data dal documento
-            data_match = re.search(r"Roma,\s*(\d{2}/\d{2}/\d{4})", first_page_text)
-            data_documento = data_match.group(1) if data_match else "no_data"
+            # Estrai la società destinataria dall'intestazione (posizione fissa)
+            # La società appare prima dell'indirizzo, cerchiamo la riga con il nome (es. "DP DENT S.R.L")
+            lines = first_page_text.split('\n')
+            societa = "no_societa"
+            for i, line in enumerate(lines):
+                # La società è tipicamente la riga che contiene "S.R.L" o simili, prima di "VIA"
+                if re.search(r'\b(S\.?R\.?L\.?|SRL|S\.?P\.?A\.?|SPA|S\.?N\.?C\.?|SNC|S\.?A\.?S\.?|SAS)\b', line, re.IGNORECASE):
+                    # Pulisci la riga rimuovendo parti non necessarie come "- GRUPPO IVA"
+                    societa_raw = re.split(r'\s*-\s*GRUPPO', line)[0].strip()
+                    societa = societa_raw if societa_raw else "no_societa"
+                    break
+
+            # Estrai la data di pagamento (valuta) invece della data della lettera
+            data_valuta_match = re.search(r"con valuta\s*(\d{2}/\d{2}/\d{4})", first_page_text)
+            data_documento = data_valuta_match.group(1) if data_valuta_match else "no_data"
+
+            # Estrai l'importo totale della distinta dal testo
+            importo_tot_match = re.search(r"importo complessivo pari ad\s*([\d.,]+)\s*euro", first_page_text, re.IGNORECASE)
+            importo_totale_distinta = importo_tot_match.group(1) if importo_tot_match else ""
             
             #st.info(f"📊 DEBUG: Società: {societa}, Data: {data_documento}")
             
@@ -130,11 +142,15 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                         
                         # Estrai i dati dalla riga
                         cod_fasiopen = row[0] if len(row) > 0 and row[0] else ""
-                        nominativo = row[1] if len(row) > 1 and row[1] else ""
-                        nominativo_familiare = row[2] if len(row) > 2 and row[2] else ""
+                        nominativo_raw = row[1] if len(row) > 1 and row[1] else ""
+                        nominativo_familiare_raw = row[2] if len(row) > 2 and row[2] else ""
                         data_fattura = row[3] if len(row) > 3 and row[3] else ""
                         numero_fattura = row[4] if len(row) > 4 and row[4] else ""
                         importo_liquidato = row[6] if len(row) > 6 and row[6] else ""
+
+                        # Separa cognome e nome con spazio (rimuovi newline)
+                        nominativo = nominativo_raw.replace('\n', ' ').strip() if nominativo_raw else ""
+                        nominativo_familiare = nominativo_familiare_raw.replace('\n', ' ').strip() if nominativo_familiare_raw else ""
                         
                   #      st.info(f"📋 DEBUG: Estratti - Nom: '{nominativo}', Data: '{data_fattura}', Num: '{numero_fattura}', Imp: '{importo_liquidato}'")
                         
@@ -145,10 +161,11 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                             nominativo = current_nominativo
                         
                         # Aggiungi solo se abbiamo dati significativi
-                        if (data_fattura and numero_fattura and importo_liquidato and 
+                        if (data_fattura and numero_fattura and importo_liquidato and
                             importo_liquidato != "0,00" and importo_liquidato.strip() != ""):
                             record = [
                                 societa,
+                                importo_totale_distinta,
                                 data_documento,
                                 nominativo,
                                 nominativo_familiare,
@@ -281,10 +298,33 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
             st.error(f"Traceback completo: {traceback.format_exc()}")
             file_con_errori.append((file_name, str(e)))
 
-    colonne_selezionate = ["Società Testata", "Data Testata", "Nominativo Dirigente", 
+    colonne_selezionate = ["Società Testata", "Data Testata", "Nominativo Dirigente",
                           "Nominativo Familiare", "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
-    
+
     df = pd.DataFrame(dati_completi, columns=colonne_selezionate)
+
+    if not df.empty:
+        # Converti "Totale Rimborsato" in numerico per il calcolo
+        df['Totale Rimborsato Numerico'] = pd.to_numeric(
+            df['Totale Rimborsato'].str.replace(',', '.').str.replace(' ', ''),
+            errors='coerce'
+        )
+
+        # Calcola "Importo tot. pagato distinta" per gruppo (Società + Data)
+        df['Importo tot. pagato distinta'] = df.groupby(['Società Testata', 'Data Testata'])['Totale Rimborsato Numerico'].transform('sum')
+        # Formatta con virgola come separatore decimale
+        df['Importo tot. pagato distinta'] = df['Importo tot. pagato distinta'].apply(lambda x: f"{x:.2f}".replace('.', ',') if pd.notna(x) else "")
+
+        # Rimuovi colonna ausiliaria
+        df = df.drop('Totale Rimborsato Numerico', axis=1)
+
+        # Crea colonna "Nominativo paziente" (Familiare se presente, altrimenti Dirigente)
+        df['Nominativo paziente'] = df.apply(
+            lambda row: row['Nominativo Familiare'] if pd.notna(row['Nominativo Familiare']) and str(row['Nominativo Familiare']).strip()
+            else row['Nominativo Dirigente'],
+            axis=1
+        )
+
     return df, file_con_errori
 
 def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
@@ -307,14 +347,23 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
             st.error(f"Dettaglio errore: {str(e)}")
             file_con_errori.append((file_name, str(e)))
     
-    colonne_selezionate = ["Società Testata", "Data Testata", "Nominativo Dirigente", 
-                          "Nominativo Familiare", "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
-    
+    colonne_selezionate = ["Società Testata", "Importo tot. pagato distinta", "Data Testata",
+                          "Nominativo Dirigente", "Nominativo Familiare", "Data Fattura",
+                          "Numero Fattura", "Totale Rimborsato"]
+
     df = pd.DataFrame(dati_completi, columns=colonne_selezionate)
+
+    # Crea colonna "Nominativo paziente" (Familiare se presente, altrimenti Dirigente)
+    df['Nominativo paziente'] = df.apply(
+        lambda row: row['Nominativo Familiare'] if pd.notna(row['Nominativo Familiare']) and str(row['Nominativo Familiare']).strip()
+        else row['Nominativo Dirigente'],
+        axis=1
+    )
+
     return df, file_con_errori
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.5.4 - 15/06/2025 - SplitExcel")
+st.info("Build 1.6.0 - 20/01/2026 - Importo distinta, Nominativo paziente, Società/Data FASI OPEN")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
@@ -397,7 +446,23 @@ if not df_originali.empty or not df_nuovi.empty:
     
     if dataframes_da_combinare:
         df_finale = pd.concat(dataframes_da_combinare, ignore_index=True)
-        
+
+        # Riordina le colonne nell'ordine desiderato
+        colonne_ordinate = ['Società Testata', 'Importo tot. pagato distinta', 'Data Testata',
+                           'Nominativo paziente', 'Data Fattura', 'Numero Fattura',
+                           'Totale Rimborsato', 'Tipo_Formato']
+        # Seleziona solo le colonne che esistono nel DataFrame
+        colonne_finali = [col for col in colonne_ordinate if col in df_finale.columns]
+        df_finale = df_finale[colonne_finali]
+
+        # Riordina anche i DataFrame originali per i fogli separati
+        if not df_originali.empty:
+            colonne_orig = [col for col in colonne_ordinate if col in df_originali.columns]
+            df_originali = df_originali[colonne_orig]
+        if not df_nuovi.empty:
+            colonne_nuovi = [col for col in colonne_ordinate if col in df_nuovi.columns]
+            df_nuovi = df_nuovi[colonne_nuovi]
+
         # Mostra statistiche separate
         col_stat1, col_stat2 = st.columns(2)
         
@@ -434,12 +499,14 @@ if not df_originali.empty or not df_nuovi.empty:
             # Foglio principale con tutti i dati
             df_finale.to_excel(writer, index=False, sheet_name="Tutti_i_Rimborsi")
             
-            # Fogli separati per formato
+            # Fogli separati per formato (senza colonna Tipo_Formato)
             if not df_originali.empty:
-                df_originali.drop('Tipo_Formato', axis=1).to_excel(writer, index=False, sheet_name="Formato_Originale")
-            
+                df_orig_export = df_originali.drop('Tipo_Formato', axis=1, errors='ignore')
+                df_orig_export.to_excel(writer, index=False, sheet_name="Formato_Originale")
+
             if not df_nuovi.empty:
-                df_nuovi.drop('Tipo_Formato', axis=1).to_excel(writer, index=False, sheet_name="Nuovo_Formato")
+                df_nuovi_export = df_nuovi.drop('Tipo_Formato', axis=1, errors='ignore')
+                df_nuovi_export.to_excel(writer, index=False, sheet_name="Nuovo_Formato")
             
             # Foglio errori se presenti
             if tutti_errori:
