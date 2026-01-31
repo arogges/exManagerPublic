@@ -291,7 +291,7 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
                                         nf = tables[i][4]  # Nominativo Familiare
                                         b = tables[i][5]  # Data Fattura
                                         c = tables[i][6]  # Numero Fattura
-                                        tot_fatt = tables[i][9]  # Totale Fattura
+                                        tot_fatt = tables[i][8]  # Totale Fattura (indice corretto)
                                         d = tables[i][10]  # Totale Rimborsato
                                         # Includi solo se fattura e rimborso sono diversi da zero
                                         if (c and c.strip() and
@@ -843,4 +843,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
