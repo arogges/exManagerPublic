@@ -41,112 +41,86 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
     """
     Estrae dati dal nuovo formato PDF (come 011-FasiOpen.pdf)
     Analizza la seconda pagina per estrarre i dati dalla tabella
+    Restituisce una tupla (dati_estratti, importo_distinta)
     """
     try:
         with pdfplumber.open(file_pdf) as pdf:
-            #st.info(f"🔍 DEBUG: Analizzando {file_name} - Numero pagine: {len(pdf.pages)}")
-            
             # Estrai informazioni dalla prima pagina
             first_page_text = pdf.pages[0].extract_text()
-            
-            # DEBUG: Mostra parte del testo della prima pagina
-            #if st.checkbox(f"🔍 DEBUG: Mostra testo prima pagina di {file_name}", key=f"debug1_{file_name}"):
-            #    st.text(first_page_text[:500] + "...")
-            
-            # Estrai la società destinataria dall'intestazione (posizione fissa)
-            # La società appare prima dell'indirizzo, cerchiamo la riga con il nome (es. "DP DENT S.R.L")
+
+            # Estrai la società destinataria dall'intestazione (in alto a destra nella prima pagina)
+            # La società è la prima riga che contiene SRL/SPA/SNC/SAS ma NON contiene "FasiOpen" o "Fondo"
             lines = first_page_text.split('\n')
             societa = "no_societa"
-            for i, line in enumerate(lines):
-                # La società è tipicamente la riga che contiene "S.R.L" o simili, prima di "VIA"
-                if re.search(r'\b(S\.?R\.?L\.?|SRL|S\.?P\.?A\.?|SPA|S\.?N\.?C\.?|SNC|S\.?A\.?S\.?|SAS)\b', line, re.IGNORECASE):
-                    # Pulisci la riga rimuovendo parti non necessarie come "- GRUPPO IVA"
-                    societa_raw = re.split(r'\s*-\s*GRUPPO', line)[0].strip()
+            for line in lines:
+                line_clean = line.strip()
+                # Salta righe vuote o che contengono FasiOpen/Fondo (sono intestazioni del documento)
+                if not line_clean or "FasiOpen" in line_clean or "Fondo" in line_clean:
+                    continue
+                # Cerca pattern di società (SRL, SPA, SNC, SAS)
+                if re.search(r'\b(S\.?R\.?L\.?|SRL|S\.?P\.?A\.?|SPA|S\.?N\.?C\.?|SNC|S\.?A\.?S\.?|SAS)\b', line_clean, re.IGNORECASE):
+                    # Pulisci rimuovendo parti non necessarie come "- GRUPPO IVA"
+                    societa_raw = re.split(r'\s*-\s*GRUPPO', line_clean)[0].strip()
                     societa = societa_raw if societa_raw else "no_societa"
                     break
 
-            # Estrai la data di pagamento (valuta) invece della data della lettera
-            data_valuta_match = re.search(r"con valuta\s*(\d{2}/\d{2}/\d{4})", first_page_text)
-            data_documento = data_valuta_match.group(1) if data_valuta_match else "no_data"
+            # Estrai la data del documento (in alto a sinistra, formato DD/MM/YYYY)
+            data_documento = "no_data"
+            # Cerca la prima data nel formato DD/MM/YYYY nelle prime righe
+            for line in lines[:15]:
+                date_match = re.search(r"(\d{2}/\d{2}/\d{4})", line)
+                if date_match:
+                    data_documento = date_match.group(1)
+                    break
 
-            # Estrai l'importo totale della distinta dal testo
-            importo_tot_match = re.search(r"importo complessivo pari ad\s*([\d.,]+)\s*euro", first_page_text, re.IGNORECASE)
-            importo_totale_distinta = importo_tot_match.group(1) if importo_tot_match else ""
-            
-            #st.info(f"📊 DEBUG: Società: {societa}, Data: {data_documento}")
-            
             # Analizza la seconda pagina per i dati della tabella
             if len(pdf.pages) < 2:
                 st.warning(f"Il file {file_name} non ha una seconda pagina")
-                return []
-            
+                return [], 0.0
+
             second_page = pdf.pages[1]
-            second_page_text = second_page.extract_text()
-            
-            # DEBUG: Mostra testo seconda pagina
-            #if st.checkbox(f"🔍 DEBUG: Mostra testo seconda pagina di {file_name}", key=f"debug2_{file_name}"):
-            #    st.text(second_page_text[:1000] + "...")
-            
             tables = second_page.extract_table()
-            
-           # st.info(f"📋 DEBUG: Tabella trovata: {tables is not None}")
-           # if tables:
-            #    st.info(f"📋 DEBUG: Numero righe tabella: {len(tables)}")
-                
-                # DEBUG: Mostra le prime righe della tabella
-             #   if st.checkbox(f"🔍 DEBUG: Mostra prime righe tabella di {file_name}", key=f"debug3_{file_name}"):
-             #       for i, row in enumerate(tables[:5]):
-             #           st.write(f"Riga {i}: {row}")
-            
+
             dati_estratti = []
-            
+            totale_fatture_file = 0.0
+
             if tables:
                 # Trova l'indice della riga di intestazione
                 header_row_idx = None
                 for i, row in enumerate(tables):
                     if row and any(cell and ("Iscritto Principale" in str(cell) or "Main Client" in str(cell)) for cell in row):
                         header_row_idx = i
-              #          st.info(f"📋 DEBUG: Header trovato alla riga {i}")
                         break
-                
+
                 if header_row_idx is None:
-                    st.warning(f"Header non trovato in {file_name}. Cerco pattern alternativi...")
-                    # Proviamo a cercare altre intestazioni
                     for i, row in enumerate(tables):
                         if row and any(cell and ("FasiOpen" in str(cell) or "Nominativo" in str(cell)) for cell in row if cell):
                             header_row_idx = i
-               #             st.info(f"📋 DEBUG: Header alternativo trovato alla riga {i}")
                             break
-                
+
                 if header_row_idx is not None:
-                #    st.info(f"📋 DEBUG: Processando righe da {header_row_idx + 1} a {len(tables)}")
-                    
-                    # Processa le righe dopo l'intestazione
                     current_nominativo = None
-                    
+
                     for i in range(header_row_idx + 1, len(tables)):
                         row = tables[i]
                         if not row:
                             continue
-                        
-                 #       st.info(f"📋 DEBUG: Riga {i} - Lunghezza: {len(row)} - Contenuto: {row}")
-                        
+
                         if len(row) < 6:
-                          #  st.warning(f"Riga {i} troppo corta, saltata")
                             continue
-                        
+
                         # Salta le righe "Totale"
                         if row and any(cell and "Totale" in str(cell) for cell in row if cell):
-                           # st.info(f"Riga {i} è un totale, saltata")
                             continue
-                        
+
                         # Estrai i dati dalla riga
                         cod_fasiopen = row[0] if len(row) > 0 and row[0] else ""
                         nominativo_raw = row[1] if len(row) > 1 and row[1] else ""  # Iscritto Principale
                         nominativo_familiare_raw = row[2] if len(row) > 2 and row[2] else ""  # Nominativo Familiare
                         data_fattura = row[3] if len(row) > 3 and row[3] else ""
                         numero_fattura = row[4] if len(row) > 4 and row[4] else ""
-                        importo_liquidato = row[6] if len(row) > 6 and row[6] else ""
+                        importo_fattura = row[5] if len(row) > 5 and row[5] else ""  # Importo Fattura
+                        importo_liquidato = row[6] if len(row) > 6 and row[6] else ""  # Totale Rimborsato
 
                         # Separa cognome e nome con spazio (rimuovi newline)
                         nominativo = nominativo_raw.replace('\n', ' ').strip() if nominativo_raw else ""
@@ -161,12 +135,12 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                         # Usa il familiare se presente, altrimenti l'iscritto principale
                         paziente = nominativo_familiare if nominativo_familiare else nominativo
 
-                        # Aggiungi solo se abbiamo dati significativi
-                        if (data_fattura and numero_fattura and importo_liquidato and
-                            importo_liquidato != "0,00" and importo_liquidato.strip() != ""):
+                        # Includi solo se fattura e rimborso sono diversi da zero
+                        if (data_fattura and numero_fattura and
+                            importo_fattura and importo_fattura.strip() and importo_fattura != "0,00" and
+                            importo_liquidato and importo_liquidato.strip() and importo_liquidato != "0,00"):
                             record = [
                                 societa,
-                                importo_totale_distinta,
                                 data_documento,
                                 paziente,
                                 data_fattura,
@@ -174,20 +148,23 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                                 importo_liquidato
                             ]
                             dati_estratti.append(record)
-                   #         st.success(f"✅ Riga {i} aggiunta: {record}")
-                   #     else:
-                   #         st.warning(f"Riga {i} non ha dati significativi o importo = 0,00")
+                            try:
+                                # Gestisci formato italiano: rimuovi separatore migliaia (.) e converti virgola in punto
+                                importo_str = importo_fattura.replace(' ', '').replace('.', '').replace(',', '.')
+                                totale_fatture_file += float(importo_str)
+                            except:
+                                pass
                 else:
                     st.error(f"Nessun header trovato nel file {file_name}")
-            
+
             st.info(f"📊 DEBUG: Totale righe estratte da {file_name}: {len(dati_estratti)}")
-            return dati_estratti
-            
+            return dati_estratti, totale_fatture_file
+
     except Exception as e:
         st.error(f"Errore nell'elaborazione del file nuovo formato '{file_name}'")
         st.error(f"Dettaglio errore: {str(e)}")
         st.error(f"Traceback: {traceback.format_exc()}")
-        return []
+        return [], 0.0
 
 def estrai_pdf_da_zip(file_zip):
     pdf_files = []
@@ -213,16 +190,20 @@ def estrai_pdf_da_zip(file_zip):
 def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
     if lista_nomi_pdf is None:
         lista_nomi_pdf = [f"File_{i+1}" for i in range(len(lista_file_pdf))]
-    
+
     dati_completi = []
     file_con_errori = []
-    
+
     for idx, file_pdf in enumerate(lista_file_pdf):
         file_name = lista_nomi_pdf[idx]
         try:
             s = estrai_testo_da_pdf_testata(file_pdf, file_name)
             dt = estrai_data_da_pdf_testata(file_pdf, file_name)
-            
+
+            # Lista per raccogliere i dati di questo file e calcolare l'importo distinta
+            dati_file = []
+            totale_fatture_file = 0.0
+
             with pdfplumber.open(file_pdf) as pdf:
                 for page_num, page in enumerate(pdf.pages, 1):
                     try:
@@ -235,86 +216,96 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
                                         nf = tables[i][4]  # Nominativo Familiare
                                         b = tables[i][5]  # Data Fattura
                                         c = tables[i][6]  # Numero Fattura
+                                        tot_fatt = tables[i][7]  # Totale Fattura
                                         d = tables[i][8]  # Totale Rimborsato
-                                        if (not(c==None) and c!="" and not(d==None) and d!= "0,00" and d!=""):
+                                        # Includi solo se fattura e rimborso sono diversi da zero
+                                        if (c and c.strip() and
+                                            tot_fatt and tot_fatt.strip() and tot_fatt != "0,00" and
+                                            d and d.strip() and d != "0,00"):
                                             if ((a==None or a=='') and i>0):
                                                 a=tables[i-1][3]
                                             if ((a==None or a=='') and i>1):
                                                 a=tables[i-2][3]
-                                            # Usa il familiare se presente, altrimenti il dirigente
                                             paziente = nf if (nf and nf.strip()) else a
-                                            dati_completi.append([s,dt,paziente,b,c,d])
+                                            dati_file.append([s, dt, paziente, b, c, d])
+                                            try:
+                                                totale_fatture_file += float(tot_fatt.replace(' ', '').replace('.', '').replace(',', '.'))
+                                            except:
+                                                pass
 
                                     elif len(tables[i]) == 10:
                                         a = tables[i][2]  # Nominativo Dirigente
                                         nf = tables[i][3]  # Nominativo Familiare
                                         b = tables[i][4]  # Data Fattura
                                         c = tables[i][5]  # Numero Fattura
+                                        tot_fatt = tables[i][8]  # Totale Fattura
                                         d = tables[i][9]  # Totale Rimborsato
-                                        if (c and c!="" and d and d!= "0,00" and d!=""):
+                                        # Includi solo se fattura e rimborso sono diversi da zero
+                                        if (c and c.strip() and
+                                            tot_fatt and tot_fatt.strip() and tot_fatt != "0,00" and
+                                            d and d.strip() and d != "0,00"):
                                             if ((a==None or a=='') and i>0):
                                                 a=tables[i-1][2]
                                             if ((a==None or a=='') and i>1):
                                                 a=tables[i-2][2]
-                                            # Usa il familiare se presente, altrimenti il dirigente
                                             paziente = nf if (nf and nf.strip()) else a
-                                            dati_completi.append([s,dt,paziente,b,c,d])
+                                            dati_file.append([s, dt, paziente, b, c, d])
+                                            try:
+                                                totale_fatture_file += float(tot_fatt.replace(' ', '').replace('.', '').replace(',', '.'))
+                                            except:
+                                                pass
 
                                     elif len(tables[i]) == 11:
                                         a = tables[i][3]  # Nominativo Dirigente
                                         nf = tables[i][4]  # Nominativo Familiare
                                         b = tables[i][5]  # Data Fattura
                                         c = tables[i][6]  # Numero Fattura
+                                        tot_fatt = tables[i][9]  # Totale Fattura
                                         d = tables[i][10]  # Totale Rimborsato
-                                        if (not(c==None) and c!="" and not(d==None) and d!= "0,00" and d!=""):
+                                        # Includi solo se fattura e rimborso sono diversi da zero
+                                        if (c and c.strip() and
+                                            tot_fatt and tot_fatt.strip() and tot_fatt != "0,00" and
+                                            d and d.strip() and d != "0,00"):
                                             if ((a==None or a=='') and i>0):
                                                 a=tables[i-1][3]
                                             if ((a==None or a=='') and i>1):
                                                 a=tables[i-2][3]
-                                            # Usa il familiare se presente, altrimenti il dirigente
                                             paziente = nf if (nf and nf.strip()) else a
-                                            dati_completi.append([s,dt,paziente,b,c,d])
+                                            dati_file.append([s, dt, paziente, b, c, d])
+                                            try:
+                                                totale_fatture_file += float(tot_fatt.replace(' ', '').replace('.', '').replace(',', '.'))
+                                            except:
+                                                pass
                                     else:
                                         st.warning(f"Formato tabella non riconosciuto nel file '{file_name}', pagina {page_num}, riga {i}: {len(tables[i])} colonne")
-                                
+
                                 except Exception as e:
                                     st.warning(f"Errore nell'elaborazione della riga {i} nella tabella del file '{file_name}', pagina {page_num}")
                                     st.warning(f"Dettaglio errore: {str(e)}")
-                    
+
                     except Exception as e:
                         st.error(f"Errore nell'elaborazione della pagina {page_num} del file '{file_name}'")
                         st.error(f"Dettaglio errore: {str(e)}")
                         file_con_errori.append((file_name, f"Errore pagina {page_num}: {str(e)}"))
-        
+
+            # Formatta l'importo distinta per questo file
+            importo_distinta_str = f"{totale_fatture_file:.2f}".replace('.', ',') if totale_fatture_file > 0 else ""
+
+            # Aggiungi l'importo distinta a ogni riga del file
+            for riga in dati_file:
+                # Inserisci importo distinta dopo società e data: [s, importo, dt, paziente, b, c, d]
+                dati_completi.append([riga[0], importo_distinta_str, riga[1], riga[2], riga[3], riga[4], riga[5]])
+
         except Exception as e:
             st.error(f"Errore nell'elaborazione del file '{file_name}'")
             st.error(f"Dettaglio errore: {str(e)}")
             st.error(f"Traceback completo: {traceback.format_exc()}")
             file_con_errori.append((file_name, str(e)))
 
-    colonne_iniziali = ["Società Testata", "Data Testata", "Nominativo Dirigente",
-                        "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
+    colonne_selezionate = ["Società Testata", "Importo Distinta", "Data Testata", "Nominativo Dirigente",
+                           "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
 
-    df = pd.DataFrame(dati_completi, columns=colonne_iniziali)
-
-    if not df.empty:
-        # Converti "Totale Rimborsato" in numerico per il calcolo
-        df['Totale Rimborsato Numerico'] = pd.to_numeric(
-            df['Totale Rimborsato'].str.replace(',', '.').str.replace(' ', ''),
-            errors='coerce'
-        )
-
-        # Calcola "Importo Distinta" per gruppo (Società + Data)
-        df['Importo Distinta'] = df.groupby(['Società Testata', 'Data Testata'])['Totale Rimborsato Numerico'].transform('sum')
-        # Formatta con virgola come separatore decimale
-        df['Importo Distinta'] = df['Importo Distinta'].apply(lambda x: f"{x:.2f}".replace('.', ',') if pd.notna(x) else "")
-
-        # Rimuovi colonna ausiliaria
-        df = df.drop('Totale Rimborsato Numerico', axis=1)
-
-        # Riordina le colonne nell'ordine richiesto
-        df = df[["Società Testata", "Importo Distinta", "Data Testata", "Nominativo Dirigente",
-                 "Data Fattura", "Numero Fattura", "Totale Rimborsato"]]
+    df = pd.DataFrame(dati_completi, columns=colonne_selezionate)
 
     return df, file_con_errori
 
@@ -324,20 +315,28 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
     """
     if lista_nomi_pdf is None:
         lista_nomi_pdf = [f"File_{i+1}" for i in range(len(lista_file_pdf))]
-    
+
     dati_completi = []
     file_con_errori = []
-    
+
     for idx, file_pdf in enumerate(lista_file_pdf):
         file_name = lista_nomi_pdf[idx]
         try:
-            dati_file = estrai_dati_formato_nuovo(file_pdf, file_name)
-            dati_completi.extend(dati_file)
+            dati_file, totale_fatture_file = estrai_dati_formato_nuovo(file_pdf, file_name)
+
+            # Formatta l'importo distinta per questo file
+            importo_distinta_str = f"{totale_fatture_file:.2f}".replace('.', ',') if totale_fatture_file > 0 else ""
+
+            # Aggiungi l'importo distinta a ogni riga del file
+            # dati_file contiene: [societa, data_documento, paziente, data_fattura, numero_fattura, importo_liquidato]
+            for riga in dati_file:
+                # Inserisci importo distinta: [societa, importo, data, paziente, data_fatt, num_fatt, tot_rimb]
+                dati_completi.append([riga[0], importo_distinta_str, riga[1], riga[2], riga[3], riga[4], riga[5]])
         except Exception as e:
             st.error(f"Errore nell'elaborazione del file nuovo formato '{file_name}'")
             st.error(f"Dettaglio errore: {str(e)}")
             file_con_errori.append((file_name, str(e)))
-    
+
     colonne_selezionate = ["Società Testata", "Importo Distinta", "Data Testata",
                           "Nominativo Dirigente", "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
 
