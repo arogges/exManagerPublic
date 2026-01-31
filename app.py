@@ -209,13 +209,22 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
     for idx, file_pdf in enumerate(lista_file_pdf):
         file_name = lista_nomi_pdf[idx]
         try:
+            # Reset posizione file prima di ogni lettura
+            if hasattr(file_pdf, 'seek'):
+                file_pdf.seek(0)
             s = estrai_testo_da_pdf_testata(file_pdf, file_name)
+
+            if hasattr(file_pdf, 'seek'):
+                file_pdf.seek(0)
             dt = estrai_data_da_pdf_testata(file_pdf, file_name)
 
             # Lista per raccogliere i dati di questo file e calcolare l'importo distinta
             dati_file = []
             totale_fatture_file = 0.0
 
+            # Reset posizione file prima della lettura principale
+            if hasattr(file_pdf, 'seek'):
+                file_pdf.seek(0)
             with pdfplumber.open(file_pdf) as pdf:
                 for page_num, page in enumerate(pdf.pages, 1):
                     try:
@@ -357,7 +366,7 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
     return df, file_con_errori
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.6.2 - 30/01/2026 - Importo distinta, Nominativo paziente, Società/Data FASI OPEN")
+st.info("Build 1.6.3 - 31/01/2026 - Fix lettura file FASI (seek reset)")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
