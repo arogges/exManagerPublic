@@ -49,17 +49,23 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
             first_page_text = pdf.pages[0].extract_text()
 
             # Estrai la società destinataria dall'intestazione (in alto a destra nella prima pagina)
-            # La società è la prima riga che contiene SRL/SPA/SNC/SAS ma NON contiene "FasiOpen" o "Fondo"
             lines = first_page_text.split('\n')
             societa = "no_societa"
+
+            # Cerca riga per riga una che contenga SRL/SPA/SNC/SAS ma non FasiOpen/Fondo
             for line in lines:
                 line_clean = line.strip()
-                # Salta righe vuote o che contengono FasiOpen/Fondo (sono intestazioni del documento)
-                if not line_clean or "FasiOpen" in line_clean or "Fondo" in line_clean:
+                # Salta righe vuote o che contengono FasiOpen/Fondo (intestazioni documento)
+                if not line_clean:
+                    continue
+                if "FasiOpen" in line_clean or "Fondo" in line_clean or "Assistenza" in line_clean:
+                    continue
+                # Salta righe che sembrano indirizzi (contengono VIA, VIALE, PIAZZA, CAP)
+                if re.search(r'\b(VIA|VIALE|PIAZZA|CORSO|^\d{5})\b', line_clean, re.IGNORECASE):
                     continue
                 # Cerca pattern di società (SRL, SPA, SNC, SAS)
                 if re.search(r'\b(S\.?R\.?L\.?|SRL|S\.?P\.?A\.?|SPA|S\.?N\.?C\.?|SNC|S\.?A\.?S\.?|SAS)\b', line_clean, re.IGNORECASE):
-                    # Pulisci rimuovendo parti non necessarie come "- GRUPPO IVA"
+                    # Pulisci rimuovendo parti non necessarie
                     societa_raw = re.split(r'\s*-\s*GRUPPO', line_clean)[0].strip()
                     societa = societa_raw if societa_raw else "no_societa"
                     break
@@ -345,7 +351,7 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
     return df, file_con_errori
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.6.1 - 30/01/2026 - Importo distinta, Nominativo paziente, Società/Data FASI OPEN")
+st.info("Build 1.6.2 - 30/01/2026 - Importo distinta, Nominativo paziente, Società/Data FASI OPEN")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
@@ -814,4 +820,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
