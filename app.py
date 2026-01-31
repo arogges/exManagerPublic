@@ -345,7 +345,7 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
     return df, file_con_errori
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.6.0 - 20/01/2026 - Importo distinta, Nominativo paziente, Società/Data FASI OPEN")
+st.info("Build 1.6.1 - 30/01/2026 - Importo distinta, Nominativo paziente, Società/Data FASI OPEN")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
@@ -814,3 +814,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
