@@ -10,6 +10,13 @@ import os
 from io import BytesIO
 from pathlib import Path
 
+# Configurazione pagina - DEVE essere la prima chiamata Streamlit
+st.set_page_config(
+    page_title="Fondi Manager",
+    page_icon="🏥",
+    layout="wide"
+)
+
 
 def estrai_testo_da_pdf_testata(file_pdf, file_name):
     try:
@@ -48,27 +55,26 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
             # Estrai informazioni dalla prima pagina
             first_page_text = pdf.pages[0].extract_text()
 
-            # Estrai la società destinataria dall'intestazione (in alto a destra nella prima pagina)
-            lines = first_page_text.split('\n')
+            # Estrai la società destinataria (in alto a destra nella prima pagina)
+            # Cerca nel testo completo il pattern "NOME SRL/SPA/SNC/SAS"
             societa = "no_societa"
 
-            # Cerca riga per riga una che contenga SRL/SPA/SNC/SAS ma non FasiOpen/Fondo
-            for line in lines:
-                line_clean = line.strip()
-                # Salta righe vuote o che contengono FasiOpen/Fondo (intestazioni documento)
-                if not line_clean:
+            # Pattern per trovare nomi di società: parole maiuscole seguite da SRL/SPA/etc
+            # Esclude pattern che contengono FasiOpen o Fondo
+            societa_pattern = re.findall(r'([A-Z][A-Z0-9\s\.\'\-]+(?:S\.?R\.?L\.?|SRL|S\.?P\.?A\.?|SPA|S\.?N\.?C\.?|SNC|S\.?A\.?S\.?|SAS))', first_page_text)
+
+            for match in societa_pattern:
+                match_clean = match.strip()
+                # Salta se contiene FasiOpen o Fondo
+                if "FasiOpen" in match_clean or "Fondo" in match_clean or "Assistenza" in match_clean:
                     continue
-                if "FasiOpen" in line_clean or "Fondo" in line_clean or "Assistenza" in line_clean:
-                    continue
-                # Salta righe che sembrano indirizzi (contengono VIA, VIALE, PIAZZA, CAP)
-                if re.search(r'\b(VIA|VIALE|PIAZZA|CORSO|^\d{5})\b', line_clean, re.IGNORECASE):
-                    continue
-                # Cerca pattern di società (SRL, SPA, SNC, SAS)
-                if re.search(r'\b(S\.?R\.?L\.?|SRL|S\.?P\.?A\.?|SPA|S\.?N\.?C\.?|SNC|S\.?A\.?S\.?|SAS)\b', line_clean, re.IGNORECASE):
-                    # Pulisci rimuovendo parti non necessarie
-                    societa_raw = re.split(r'\s*-\s*GRUPPO', line_clean)[0].strip()
-                    societa = societa_raw if societa_raw else "no_societa"
+                # Pulisci rimuovendo parti non necessarie
+                societa_raw = re.split(r'\s*-\s*GRUPPO', match_clean)[0].strip()
+                if societa_raw:
+                    societa = societa_raw
                     break
+
+            lines = first_page_text.split('\n')
 
             # Estrai la data del documento (in alto a sinistra, formato DD/MM/YYYY)
             data_documento = "no_data"
@@ -596,13 +602,7 @@ if incassi_file and dettagli_file:
         )
     else:
         st.error("❌ La colonna 'Seq' non è presente nel file 'Dettaglio_pagamenti'")
-        
-        
-st.set_page_config(
-    page_title="Divisore Excel per Cliniche",
-    page_icon="🏥",
-    layout="wide"
-)
+
 
 def validate_clinica_file(df):
     """
