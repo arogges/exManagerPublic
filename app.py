@@ -225,10 +225,15 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
             # Reset posizione file prima della lettura principale
             if hasattr(file_pdf, 'seek'):
                 file_pdf.seek(0)
+
+            st.info(f"DEBUG FASI: Elaborazione file {file_name}, testata={s}, data={dt}")
+
             with pdfplumber.open(file_pdf) as pdf:
+                st.info(f"DEBUG FASI: File {file_name} ha {len(pdf.pages)} pagine")
                 for page_num, page in enumerate(pdf.pages, 1):
                     try:
                         tables = page.extract_table()
+                        st.info(f"DEBUG FASI: Pagina {page_num}, tabella trovata: {tables is not None}, righe: {len(tables) if tables else 0}")
                         if tables:
                             for i, row in enumerate(tables[1:], 1):
                                 try:
@@ -407,8 +412,12 @@ if file_originali:
                 lista_pdf_orig.extend(pdf_estratti)
                 nomi_pdf_orig.extend(nomi_estratti)
 
+        st.info(f"DEBUG: {len(lista_pdf_orig)} PDF da elaborare")
         if lista_pdf_orig:
             df_originali, errori_originali = estrai_dati_da_pdf(lista_pdf_orig, nomi_pdf_orig)
+            st.info(f"DEBUG: DataFrame risultante ha {len(df_originali)} righe")
+            if errori_originali:
+                st.warning(f"DEBUG: {len(errori_originali)} errori: {errori_originali}")
 
 # Elaborazione file nuovi
 df_nuovi = pd.DataFrame()
