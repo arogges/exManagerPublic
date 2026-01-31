@@ -169,7 +169,7 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                 else:
                     st.error(f"Nessun header trovato nel file {file_name}")
 
-            st.info(f"📊 DEBUG: Totale righe estratte da {file_name}: {len(dati_estratti)}")
+           # st.info(f"📊 DEBUG: Totale righe estratte da {file_name}: {len(dati_estratti)}")
             return dati_estratti, totale_fatture_file
 
     except Exception as e:
@@ -226,22 +226,22 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
             if hasattr(file_pdf, 'seek'):
                 file_pdf.seek(0)
 
-            st.info(f"DEBUG FASI: Elaborazione file {file_name}, testata={s}, data={dt}")
+           # st.info(f"DEBUG FASI: Elaborazione file {file_name}, testata={s}, data={dt}")
 
             with pdfplumber.open(file_pdf) as pdf:
-                st.info(f"DEBUG FASI: File {file_name} ha {len(pdf.pages)} pagine")
+                #st.info(f"DEBUG FASI: File {file_name} ha {len(pdf.pages)} pagine")
                 for page_num, page in enumerate(pdf.pages, 1):
                     try:
                         tables = page.extract_table()
-                        st.info(f"DEBUG FASI: Pagina {page_num}, tabella trovata: {tables is not None}, righe: {len(tables) if tables else 0}")
+                        #st.info(f"DEBUG FASI: Pagina {page_num}, tabella trovata: {tables is not None}, righe: {len(tables) if tables else 0}")
                         if tables:
                             # Debug: mostra struttura prime righe
-                            for debug_i, debug_row in enumerate(tables[:3]):
-                                st.info(f"DEBUG FASI: Riga {debug_i} ha {len(debug_row)} colonne: {debug_row}")
+                            #for debug_i, debug_row in enumerate(tables[:3]):
+                                #st.info(f"DEBUG FASI: Riga {debug_i} ha {len(debug_row)} colonne: {debug_row}")
 
                             for i, row in enumerate(tables[1:], 1):
                                 try:
-                                    st.info(f"DEBUG FASI: Riga {i} - colonne: {len(tables[i])}")
+                                    #st.info(f"DEBUG FASI: Riga {i} - colonne: {len(tables[i])}")
                                     if len(tables[i]) == 9:
                                         a = tables[i][3]  # Nominativo Dirigente
                                         nf = tables[i][4]  # Nominativo Familiare
