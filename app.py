@@ -142,8 +142,8 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                         
                         # Estrai i dati dalla riga
                         cod_fasiopen = row[0] if len(row) > 0 and row[0] else ""
-                        nominativo_raw = row[1] if len(row) > 1 and row[1] else ""
-                        nominativo_familiare_raw = row[2] if len(row) > 2 and row[2] else ""
+                        nominativo_raw = row[1] if len(row) > 1 and row[1] else ""  # Iscritto Principale
+                        nominativo_familiare_raw = row[2] if len(row) > 2 and row[2] else ""  # Nominativo Familiare
                         data_fattura = row[3] if len(row) > 3 and row[3] else ""
                         numero_fattura = row[4] if len(row) > 4 and row[4] else ""
                         importo_liquidato = row[6] if len(row) > 6 and row[6] else ""
@@ -151,15 +151,16 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                         # Separa cognome e nome con spazio (rimuovi newline)
                         nominativo = nominativo_raw.replace('\n', ' ').strip() if nominativo_raw else ""
                         nominativo_familiare = nominativo_familiare_raw.replace('\n', ' ').strip() if nominativo_familiare_raw else ""
-                        
-                  #      st.info(f"📋 DEBUG: Estratti - Nom: '{nominativo}', Data: '{data_fattura}', Num: '{numero_fattura}', Imp: '{importo_liquidato}'")
-                        
+
                         # Se il nominativo è vuoto, usa quello precedente
                         if nominativo and nominativo.strip():
                             current_nominativo = nominativo.strip()
                         elif current_nominativo:
                             nominativo = current_nominativo
-                        
+
+                        # Usa il familiare se presente, altrimenti l'iscritto principale
+                        paziente = nominativo_familiare if nominativo_familiare else nominativo
+
                         # Aggiungi solo se abbiamo dati significativi
                         if (data_fattura and numero_fattura and importo_liquidato and
                             importo_liquidato != "0,00" and importo_liquidato.strip() != ""):
@@ -167,8 +168,7 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                                 societa,
                                 importo_totale_distinta,
                                 data_documento,
-                                nominativo,
-                                nominativo_familiare,
+                                paziente,
                                 data_fattura,
                                 numero_fattura,
                                 importo_liquidato
@@ -231,55 +231,49 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
                             for i, row in enumerate(tables[1:], 1):
                                 try:
                                     if len(tables[i]) == 9:
-                                        a = tables[i][3]
-                                        nf = tables[i][4]
-                                        b = tables[i][5]
-                                        c = tables[i][6]
-                                        d = tables[i][8]
+                                        a = tables[i][3]  # Nominativo Dirigente
+                                        nf = tables[i][4]  # Nominativo Familiare
+                                        b = tables[i][5]  # Data Fattura
+                                        c = tables[i][6]  # Numero Fattura
+                                        d = tables[i][8]  # Totale Rimborsato
                                         if (not(c==None) and c!="" and not(d==None) and d!= "0,00" and d!=""):
                                             if ((a==None or a=='') and i>0):
                                                 a=tables[i-1][3]
-                                            if ((nf==None or nf=='') and i>0):
-                                                nf=tables[i-1][4]
                                             if ((a==None or a=='') and i>1):
                                                 a=tables[i-2][3]
-                                            if ((nf==None or nf=='') and i>1):
-                                                nf=tables[i-2][4]
-                                            dati_completi.append([s,dt,a,nf,b,c,d])
-                                    
+                                            # Usa il familiare se presente, altrimenti il dirigente
+                                            paziente = nf if (nf and nf.strip()) else a
+                                            dati_completi.append([s,dt,paziente,b,c,d])
+
                                     elif len(tables[i]) == 10:
-                                        a = tables[i][2]
-                                        nf = tables[i][3]
-                                        b = tables[i][4]
-                                        c = tables[i][5]
-                                        d = tables[i][9]
+                                        a = tables[i][2]  # Nominativo Dirigente
+                                        nf = tables[i][3]  # Nominativo Familiare
+                                        b = tables[i][4]  # Data Fattura
+                                        c = tables[i][5]  # Numero Fattura
+                                        d = tables[i][9]  # Totale Rimborsato
                                         if (c and c!="" and d and d!= "0,00" and d!=""):
                                             if ((a==None or a=='') and i>0):
                                                 a=tables[i-1][2]
-                                            if ((nf==None or nf=='') and i>0):
-                                                nf=tables[i-1][3]
                                             if ((a==None or a=='') and i>1):
                                                 a=tables[i-2][2]
-                                            if ((nf==None or nf=='') and i>1):
-                                                nf=tables[i-2][3]
-                                            dati_completi.append([s,dt,a,nf,b,c,d])
-                                    
+                                            # Usa il familiare se presente, altrimenti il dirigente
+                                            paziente = nf if (nf and nf.strip()) else a
+                                            dati_completi.append([s,dt,paziente,b,c,d])
+
                                     elif len(tables[i]) == 11:
-                                        a = tables[i][3]
-                                        nf = tables[i][4]
-                                        b = tables[i][5]
-                                        c = tables[i][6]
-                                        d = tables[i][10]
+                                        a = tables[i][3]  # Nominativo Dirigente
+                                        nf = tables[i][4]  # Nominativo Familiare
+                                        b = tables[i][5]  # Data Fattura
+                                        c = tables[i][6]  # Numero Fattura
+                                        d = tables[i][10]  # Totale Rimborsato
                                         if (not(c==None) and c!="" and not(d==None) and d!= "0,00" and d!=""):
                                             if ((a==None or a=='') and i>0):
                                                 a=tables[i-1][3]
-                                            if ((nf==None or nf=='') and i>0):
-                                                nf=tables[i-1][4]
                                             if ((a==None or a=='') and i>1):
                                                 a=tables[i-2][3]
-                                            if ((nf==None or nf=='') and i>1):
-                                                nf=tables[i-2][4]
-                                            dati_completi.append([s,dt,a,nf,b,c,d])
+                                            # Usa il familiare se presente, altrimenti il dirigente
+                                            paziente = nf if (nf and nf.strip()) else a
+                                            dati_completi.append([s,dt,paziente,b,c,d])
                                     else:
                                         st.warning(f"Formato tabella non riconosciuto nel file '{file_name}', pagina {page_num}, riga {i}: {len(tables[i])} colonne")
                                 
@@ -298,10 +292,10 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
             st.error(f"Traceback completo: {traceback.format_exc()}")
             file_con_errori.append((file_name, str(e)))
 
-    colonne_selezionate = ["Società Testata", "Data Testata", "Nominativo Dirigente",
-                          "Nominativo Familiare", "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
+    colonne_iniziali = ["Società Testata", "Data Testata", "Nominativo Dirigente",
+                        "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
 
-    df = pd.DataFrame(dati_completi, columns=colonne_selezionate)
+    df = pd.DataFrame(dati_completi, columns=colonne_iniziali)
 
     if not df.empty:
         # Converti "Totale Rimborsato" in numerico per il calcolo
@@ -310,20 +304,17 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
             errors='coerce'
         )
 
-        # Calcola "Importo tot. pagato distinta" per gruppo (Società + Data)
-        df['Importo tot. pagato distinta'] = df.groupby(['Società Testata', 'Data Testata'])['Totale Rimborsato Numerico'].transform('sum')
+        # Calcola "Importo Distinta" per gruppo (Società + Data)
+        df['Importo Distinta'] = df.groupby(['Società Testata', 'Data Testata'])['Totale Rimborsato Numerico'].transform('sum')
         # Formatta con virgola come separatore decimale
-        df['Importo tot. pagato distinta'] = df['Importo tot. pagato distinta'].apply(lambda x: f"{x:.2f}".replace('.', ',') if pd.notna(x) else "")
+        df['Importo Distinta'] = df['Importo Distinta'].apply(lambda x: f"{x:.2f}".replace('.', ',') if pd.notna(x) else "")
 
         # Rimuovi colonna ausiliaria
         df = df.drop('Totale Rimborsato Numerico', axis=1)
 
-        # Crea colonna "Nominativo paziente" (Familiare se presente, altrimenti Dirigente)
-        df['Nominativo paziente'] = df.apply(
-            lambda row: row['Nominativo Familiare'] if pd.notna(row['Nominativo Familiare']) and str(row['Nominativo Familiare']).strip()
-            else row['Nominativo Dirigente'],
-            axis=1
-        )
+        # Riordina le colonne nell'ordine richiesto
+        df = df[["Società Testata", "Importo Distinta", "Data Testata", "Nominativo Dirigente",
+                 "Data Fattura", "Numero Fattura", "Totale Rimborsato"]]
 
     return df, file_con_errori
 
@@ -347,18 +338,10 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
             st.error(f"Dettaglio errore: {str(e)}")
             file_con_errori.append((file_name, str(e)))
     
-    colonne_selezionate = ["Società Testata", "Importo tot. pagato distinta", "Data Testata",
-                          "Nominativo Dirigente", "Nominativo Familiare", "Data Fattura",
-                          "Numero Fattura", "Totale Rimborsato"]
+    colonne_selezionate = ["Società Testata", "Importo Distinta", "Data Testata",
+                          "Nominativo Dirigente", "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
 
     df = pd.DataFrame(dati_completi, columns=colonne_selezionate)
-
-    # Crea colonna "Nominativo paziente" (Familiare se presente, altrimenti Dirigente)
-    df['Nominativo paziente'] = df.apply(
-        lambda row: row['Nominativo Familiare'] if pd.notna(row['Nominativo Familiare']) and str(row['Nominativo Familiare']).strip()
-        else row['Nominativo Dirigente'],
-        axis=1
-    )
 
     return df, file_con_errori
 
@@ -448,8 +431,8 @@ if not df_originali.empty or not df_nuovi.empty:
         df_finale = pd.concat(dataframes_da_combinare, ignore_index=True)
 
         # Riordina le colonne nell'ordine desiderato
-        colonne_ordinate = ['Società Testata', 'Importo tot. pagato distinta', 'Data Testata',
-                           'Nominativo paziente', 'Data Fattura', 'Numero Fattura',
+        colonne_ordinate = ['Società Testata', 'Importo Distinta', 'Data Testata',
+                           'Nominativo Dirigente', 'Data Fattura', 'Numero Fattura',
                            'Totale Rimborsato', 'Tipo_Formato']
         # Seleziona solo le colonne che esistono nel DataFrame
         colonne_finali = [col for col in colonne_ordinate if col in df_finale.columns]
@@ -493,35 +476,50 @@ if not df_originali.empty or not df_nuovi.empty:
         st.write("### Anteprima Dati Estratti")
         st.dataframe(df_finale.head(10))
         
-        # Prepara il file Excel con fogli separati
-        buffer = io.BytesIO()
-        with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-            # Foglio principale con tutti i dati
-            df_finale.to_excel(writer, index=False, sheet_name="Tutti_i_Rimborsi")
-            
-            # Fogli separati per formato (senza colonna Tipo_Formato)
-            if not df_originali.empty:
+        # Genera la data di elaborazione
+        data_elaborazione = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Crea file Excel separato per FASI (formato originale)
+        if not df_originali.empty:
+            buffer_fasi = io.BytesIO()
+            with pd.ExcelWriter(buffer_fasi, engine="openpyxl") as writer:
                 df_orig_export = df_originali.drop('Tipo_Formato', axis=1, errors='ignore')
-                df_orig_export.to_excel(writer, index=False, sheet_name="Formato_Originale")
+                df_orig_export.to_excel(writer, index=False, sheet_name="Rimborsi_FASI")
 
-            if not df_nuovi.empty:
+                # Aggiungi foglio errori se presenti errori per FASI
+                if errori_originali:
+                    df_errori_fasi = pd.DataFrame(errori_originali, columns=["Nome File", "Errore"])
+                    df_errori_fasi.to_excel(writer, index=False, sheet_name="Errori")
+
+            file_name_fasi = f"FASI_{data_elaborazione}.xlsx"
+            st.download_button(
+                label="📥 Scarica Excel FASI",
+                data=buffer_fasi.getvalue(),
+                file_name=file_name_fasi,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="download_fasi"
+            )
+
+        # Crea file Excel separato per FASIOPEN (nuovo formato)
+        if not df_nuovi.empty:
+            buffer_fasiopen = io.BytesIO()
+            with pd.ExcelWriter(buffer_fasiopen, engine="openpyxl") as writer:
                 df_nuovi_export = df_nuovi.drop('Tipo_Formato', axis=1, errors='ignore')
-                df_nuovi_export.to_excel(writer, index=False, sheet_name="Nuovo_Formato")
-            
-            # Foglio errori se presenti
-            if tutti_errori:
-                df_errori = pd.DataFrame(tutti_errori, columns=["Nome File", "Errore"])
-                df_errori.to_excel(writer, index=False, sheet_name="Errori")
+                df_nuovi_export.to_excel(writer, index=False, sheet_name="Rimborsi_FASIOPEN")
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_name = f"estratto_fasi_open_completo_{timestamp}.xlsx"
+                # Aggiungi foglio errori se presenti errori per FASIOPEN
+                if errori_nuovi:
+                    df_errori_fasiopen = pd.DataFrame(errori_nuovi, columns=["Nome File", "Errore"])
+                    df_errori_fasiopen.to_excel(writer, index=False, sheet_name="Errori")
 
-        st.download_button(
-            label="📥 Scarica il file Excel completo",
-            data=buffer.getvalue(),
-            file_name=file_name,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+            file_name_fasiopen = f"FASIOPEN_{data_elaborazione}.xlsx"
+            st.download_button(
+                label="📥 Scarica Excel FASIOPEN",
+                data=buffer_fasiopen.getvalue(),
+                file_name=file_name_fasiopen,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="download_fasiopen"
+            )
     else:
         st.warning("Nessuna tabella estratta dai PDF! Controlla i messaggi di errore sopra.")
 
