@@ -259,7 +259,7 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
                                             paziente = nf if (nf and nf.strip()) else a
                                             dati_file.append([s, dt, paziente, b, c, d])
                                             try:
-                                                totale_fatture_file += float(tot_fatt.replace(' ', '').replace('.', '').replace(',', '.'))
+                                                totale_fatture_file += float(d.replace(' ', '').replace('.', '').replace(',', '.'))
                                             except:
                                                 pass
 
@@ -281,7 +281,7 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
                                             paziente = nf if (nf and nf.strip()) else a
                                             dati_file.append([s, dt, paziente, b, c, d])
                                             try:
-                                                totale_fatture_file += float(tot_fatt.replace(' ', '').replace('.', '').replace(',', '.'))
+                                                totale_fatture_file += float(d.replace(' ', '').replace('.', '').replace(',', '.'))
                                             except:
                                                 pass
 
@@ -303,7 +303,7 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
                                             paziente = nf if (nf and nf.strip()) else a
                                             dati_file.append([s, dt, paziente, b, c, d])
                                             try:
-                                                totale_fatture_file += float(tot_fatt.replace(' ', '').replace('.', '').replace(',', '.'))
+                                                totale_fatture_file += float(d.replace(' ', '').replace('.', '').replace(',', '.'))
                                             except:
                                                 pass
                                     else:
@@ -842,5 +842,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
