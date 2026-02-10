@@ -362,14 +362,14 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
             # dati_file contiene: [societa, data_documento, paziente, data_fattura, numero_fattura, importo_liquidato]
             for riga in dati_file:
                 # Inserisci importo distinta: [societa, importo, data, paziente, data_fatt, num_fatt, tot_rimb]
-                dati_completi.append([riga[0], importo_distinta_str, riga[1], riga[2], riga[3], riga[4], riga[5]])
+                dati_completi.append([riga[0], importo_distinta_str, riga[1], riga[2], riga[3], riga[4], riga[5], file_name])
         except Exception as e:
             st.error(f"Errore nell'elaborazione del file nuovo formato '{file_name}'")
             st.error(f"Dettaglio errore: {str(e)}")
             file_con_errori.append((file_name, str(e)))
 
     colonne_selezionate = ["Società Testata", "Importo Distinta", "Data Testata",
-                          "Nominativo Dirigente", "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
+                          "Nominativo Dirigente", "Data Fattura", "Numero Fattura", "Totale Rimborsato", "Nome File PDF"]
 
     df = pd.DataFrame(dati_completi, columns=colonne_selezionate)
 
