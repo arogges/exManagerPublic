@@ -77,6 +77,11 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                 societa = societa_raw
                 break
 
+        # Fallback: cerca nomi società noti senza suffisso legale (es. "DP DENT")
+        if societa == "no_societa":
+            if re.search(r'\bDP\s*DENT\b', first_page_text, re.IGNORECASE):
+                societa = "DP DENT"
+
         # Estrai la data valuta dal testo centrale (pattern "con valuta DD/MM/YYYY")
         testo_normalizzato = first_page_text.replace('\n', ' ')
         data_documento = "no_data"
@@ -377,7 +382,7 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
     return df, file_con_errori
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.6.4 - 10/02/2026 - Aggiunta colonna 'nome_file' nelle estrazioni FASI e FASIOPEN")
+st.info("Build 1.6.5 - 10/02/2026 - Aggiunta colonna 'nome_file' nelle estrazioni FASI e FASIOPEN")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
@@ -844,6 +849,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
