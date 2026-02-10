@@ -1,5 +1,6 @@
 import streamlit as st
 import pdfplumber
+import fitz  # PyMuPDF - per estrazione testo con spazi corretti
 import pandas as pd
 import io
 import re
@@ -47,129 +48,130 @@ def estrai_data_da_pdf_testata(file_pdf, file_name):
 def estrai_dati_formato_nuovo(file_pdf, file_name):
     """
     Estrae dati dal nuovo formato PDF (come 011-FasiOpen.pdf)
+    Usa PyMuPDF (fitz) per estrazione testo con spazi corretti
     Analizza la seconda pagina per estrarre i dati dalla tabella
     Restituisce una tupla (dati_estratti, importo_distinta)
     """
     try:
-        with pdfplumber.open(file_pdf) as pdf:
-            # Estrai informazioni dalla prima pagina
-            first_page_text = pdf.pages[0].extract_text(x_tolerance=10)
+        if hasattr(file_pdf, 'seek'):
+            file_pdf.seek(0)
+        file_bytes = file_pdf.read()
 
-            # Estrai la società destinataria (in alto a destra nella prima pagina)
-            # Cerca nel testo completo il pattern "NOME SRL/SPA/SNC/SAS"
-            societa = "no_societa"
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
 
-            # Pattern per trovare nomi di società: parole maiuscole seguite da SRL/SPA/etc
-            # Esclude pattern che contengono FasiOpen o Fondo
-            societa_pattern = re.findall(r'([A-Z][A-Z0-9\s\.\'\-]+(?:S\.?R\.?L\.?|SRL|S\.?P\.?A\.?|SPA|S\.?N\.?C\.?|SNC|S\.?A\.?S\.?|SAS))', first_page_text)
+        # Estrai informazioni dalla prima pagina con PyMuPDF
+        first_page_text = doc[0].get_text()
 
-            for match in societa_pattern:
-                match_clean = match.strip()
-                # Salta se contiene FasiOpen o Fondo
-                if "FasiOpen" in match_clean or "Fondo" in match_clean or "Assistenza" in match_clean:
-                    continue
-                # Pulisci rimuovendo parti non necessarie
-                societa_raw = re.split(r'\s*-\s*GRUPPO', match_clean)[0].strip()
-                if societa_raw:
-                    societa = societa_raw
+        # Estrai la società destinataria (in alto a destra nella prima pagina)
+        societa = "no_societa"
+
+        # Pattern per trovare nomi di società: parole maiuscole seguite da SRL/SPA/etc
+        societa_pattern = re.findall(r'([A-Z][A-Z0-9\s\.\'\-]+(?:S\.?R\.?L\.?|SRL|S\.?P\.?A\.?|SPA|S\.?N\.?C\.?|SNC|S\.?A\.?S\.?|SAS))', first_page_text)
+
+        for match in societa_pattern:
+            match_clean = match.strip()
+            if "FasiOpen" in match_clean or "Fondo" in match_clean or "Assistenza" in match_clean:
+                continue
+            societa_raw = re.split(r'\s*-\s*GRUPPO', match_clean)[0].strip()
+            if societa_raw:
+                societa = societa_raw
+                break
+
+        # Estrai la data valuta dal testo centrale (pattern "con valuta DD/MM/YYYY")
+        testo_normalizzato = first_page_text.replace('\n', ' ')
+        data_documento = "no_data"
+        valuta_match = re.search(r"con\s*valuta\s*(\d{2}/\d{2}/\d{4})", testo_normalizzato, re.IGNORECASE)
+        if valuta_match:
+            data_documento = valuta_match.group(1)
+
+        # Analizza la seconda pagina per i dati della tabella
+        if len(doc) < 2:
+            st.warning(f"Il file {file_name} non ha una seconda pagina")
+            doc.close()
+            return [], 0.0
+
+        second_page = doc[1]
+        tabs = second_page.find_tables()
+
+        dati_estratti = []
+        totale_fatture_file = 0.0
+
+        if tabs.tables:
+            tables = tabs[0].extract()  # lista di liste, come pdfplumber
+
+            # Trova l'indice della riga di intestazione
+            header_row_idx = None
+            for i, row in enumerate(tables):
+                if row and any(cell and ("Iscritto Principale" in str(cell) or "Main Client" in str(cell)) for cell in row):
+                    header_row_idx = i
                     break
 
-            lines = first_page_text.split('\n')
-
-            # Estrai la data valuta dal testo centrale (pattern "con valuta DD/MM/YYYY")
-            # Normalizza il testo rimuovendo a-capo per gestire testo spezzato su più righe
-            testo_normalizzato = first_page_text.replace('\n', ' ')
-            data_documento = "no_data"
-            valuta_match = re.search(r"con\s*valuta\s*(\d{2}/\d{2}/\d{4})", testo_normalizzato, re.IGNORECASE)
-            if valuta_match:
-                data_documento = valuta_match.group(1)
-
-            # Analizza la seconda pagina per i dati della tabella
-            if len(pdf.pages) < 2:
-                st.warning(f"Il file {file_name} non ha una seconda pagina")
-                return [], 0.0
-
-            second_page = pdf.pages[1]
-            tables = second_page.extract_table({"text_x_tolerance": 10})
-
-            dati_estratti = []
-            totale_fatture_file = 0.0
-
-            if tables:
-                # Trova l'indice della riga di intestazione
-                header_row_idx = None
+            if header_row_idx is None:
                 for i, row in enumerate(tables):
-                    if row and any(cell and ("Iscritto Principale" in str(cell) or "Main Client" in str(cell)) for cell in row):
+                    if row and any(cell and ("FasiOpen" in str(cell) or "Nominativo" in str(cell)) for cell in row if cell):
                         header_row_idx = i
                         break
 
-                if header_row_idx is None:
-                    for i, row in enumerate(tables):
-                        if row and any(cell and ("FasiOpen" in str(cell) or "Nominativo" in str(cell)) for cell in row if cell):
-                            header_row_idx = i
-                            break
+            if header_row_idx is not None:
+                current_nominativo = None
 
-                if header_row_idx is not None:
-                    current_nominativo = None
+                for i in range(header_row_idx + 1, len(tables)):
+                    row = tables[i]
+                    if not row:
+                        continue
 
-                    for i in range(header_row_idx + 1, len(tables)):
-                        row = tables[i]
-                        if not row:
-                            continue
+                    if len(row) < 6:
+                        continue
 
-                        if len(row) < 6:
-                            continue
+                    # Salta le righe "Totale"
+                    if row and any(cell and "Totale" in str(cell) for cell in row if cell):
+                        continue
 
-                        # Salta le righe "Totale"
-                        if row and any(cell and "Totale" in str(cell) for cell in row if cell):
-                            continue
+                    # Estrai i dati dalla riga
+                    cod_fasiopen = row[0] if len(row) > 0 and row[0] else ""
+                    nominativo_raw = row[1] if len(row) > 1 and row[1] else ""  # Iscritto Principale
+                    nominativo_familiare_raw = row[2] if len(row) > 2 and row[2] else ""  # Nominativo Familiare
+                    data_fattura = row[3] if len(row) > 3 and row[3] else ""
+                    numero_fattura = row[4] if len(row) > 4 and row[4] else ""
+                    importo_fattura = row[5] if len(row) > 5 and row[5] else ""  # Importo Fattura
+                    importo_liquidato = row[6] if len(row) > 6 and row[6] else ""  # Totale Rimborsato
 
-                        # Estrai i dati dalla riga
-                        cod_fasiopen = row[0] if len(row) > 0 and row[0] else ""
-                        nominativo_raw = row[1] if len(row) > 1 and row[1] else ""  # Iscritto Principale
-                        nominativo_familiare_raw = row[2] if len(row) > 2 and row[2] else ""  # Nominativo Familiare
-                        data_fattura = row[3] if len(row) > 3 and row[3] else ""
-                        numero_fattura = row[4] if len(row) > 4 and row[4] else ""
-                        importo_fattura = row[5] if len(row) > 5 and row[5] else ""  # Importo Fattura
-                        importo_liquidato = row[6] if len(row) > 6 and row[6] else ""  # Totale Rimborsato
+                    # Separa cognome e nome con spazio (rimuovi newline)
+                    nominativo = nominativo_raw.replace('\n', ' ').strip() if nominativo_raw else ""
+                    nominativo_familiare = nominativo_familiare_raw.replace('\n', ' ').strip() if nominativo_familiare_raw else ""
 
-                        # Separa cognome e nome con spazio (rimuovi newline)
-                        nominativo = nominativo_raw.replace('\n', ' ').strip() if nominativo_raw else ""
-                        nominativo_familiare = nominativo_familiare_raw.replace('\n', ' ').strip() if nominativo_familiare_raw else ""
+                    # Se il nominativo è vuoto, usa quello precedente
+                    if nominativo and nominativo.strip():
+                        current_nominativo = nominativo.strip()
+                    elif current_nominativo:
+                        nominativo = current_nominativo
 
-                        # Se il nominativo è vuoto, usa quello precedente
-                        if nominativo and nominativo.strip():
-                            current_nominativo = nominativo.strip()
-                        elif current_nominativo:
-                            nominativo = current_nominativo
+                    # Usa il familiare se presente, altrimenti l'iscritto principale
+                    paziente = nominativo_familiare if nominativo_familiare else nominativo
 
-                        # Usa il familiare se presente, altrimenti l'iscritto principale
-                        paziente = nominativo_familiare if nominativo_familiare else nominativo
+                    # Includi solo se fattura e rimborso sono diversi da zero
+                    if (data_fattura and numero_fattura and
+                        importo_fattura and importo_fattura.strip() and importo_fattura != "0,00" and
+                        importo_liquidato and importo_liquidato.strip() and importo_liquidato != "0,00"):
+                        record = [
+                            societa,
+                            data_documento,
+                            paziente,
+                            data_fattura,
+                            numero_fattura,
+                            importo_liquidato
+                        ]
+                        dati_estratti.append(record)
+                        try:
+                            importo_str = importo_liquidato.replace(' ', '').replace('.', '').replace(',', '.')
+                            totale_fatture_file += float(importo_str)
+                        except:
+                            pass
+            else:
+                st.error(f"Nessun header trovato nel file {file_name}")
 
-                        # Includi solo se fattura e rimborso sono diversi da zero
-                        if (data_fattura and numero_fattura and
-                            importo_fattura and importo_fattura.strip() and importo_fattura != "0,00" and
-                            importo_liquidato and importo_liquidato.strip() and importo_liquidato != "0,00"):
-                            record = [
-                                societa,
-                                data_documento,
-                                paziente,
-                                data_fattura,
-                                numero_fattura,
-                                importo_liquidato
-                            ]
-                            dati_estratti.append(record)
-                            try:
-                                # Gestisci formato italiano: rimuovi separatore migliaia (.) e converti virgola in punto
-                                importo_str = importo_liquidato.replace(' ', '').replace('.', '').replace(',', '.')
-                                totale_fatture_file += float(importo_str)
-                            except:
-                                pass
-                else:
-                    st.error(f"Nessun header trovato nel file {file_name}")
-
-           # st.info(f"📊 DEBUG: Totale righe estratte da {file_name}: {len(dati_estratti)}")
-            return dati_estratti, totale_fatture_file
+        doc.close()
+        return dati_estratti, totale_fatture_file
 
     except Exception as e:
         st.error(f"Errore nell'elaborazione del file nuovo formato '{file_name}'")
@@ -842,6 +844,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
