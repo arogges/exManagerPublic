@@ -80,11 +80,9 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
             # Normalizza il testo rimuovendo a-capo per gestire testo spezzato su più righe
             testo_normalizzato = first_page_text.replace('\n', ' ')
             data_documento = "no_data"
-            valuta_match = re.search(r"con\s+valuta\s+(\d{2}/\d{2}/\d{4})", testo_normalizzato, re.IGNORECASE)
+            valuta_match = re.search(r"con\s*valuta\s*(\d{2}/\d{2}/\d{4})", testo_normalizzato, re.IGNORECASE)
             if valuta_match:
                 data_documento = valuta_match.group(1)
-            else:
-                st.warning(f"DEBUG {file_name}: 'con valuta' non trovato. Testo prima pagina: {testo_normalizzato[:500]}")
 
             # Analizza la seconda pagina per i dati della tabella
             if len(pdf.pages) < 2:
@@ -844,4 +842,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
