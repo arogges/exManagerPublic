@@ -76,14 +76,11 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
 
             lines = first_page_text.split('\n')
 
-            # Estrai la data del documento (in alto a sinistra, formato DD/MM/YYYY)
+            # Estrai la data valuta dal testo centrale (pattern "con valuta DD/MM/YYYY")
             data_documento = "no_data"
-            # Cerca la prima data nel formato DD/MM/YYYY nelle prime righe
-            for line in lines[:15]:
-                date_match = re.search(r"(\d{2}/\d{2}/\d{4})", line)
-                if date_match:
-                    data_documento = date_match.group(1)
-                    break
+            valuta_match = re.search(r"con\s+valuta\s+(\d{2}/\d{2}/\d{4})", first_page_text, re.IGNORECASE)
+            if valuta_match:
+                data_documento = valuta_match.group(1)
 
             # Analizza la seconda pagina per i dati della tabella
             if len(pdf.pages) < 2:
@@ -376,7 +373,7 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
     return df, file_con_errori
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.6.3 - 31/01/2026 - Fix lettura file FASI (seek reset)")
+st.info("Build 1.6.4 - 10/02/2026 - Aggiunta colonna 'nome_file' nelle estrazioni FASI e FASIOPEN")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
@@ -843,3 +840,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
