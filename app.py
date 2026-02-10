@@ -161,7 +161,7 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                             dati_estratti.append(record)
                             try:
                                 # Gestisci formato italiano: rimuovi separatore migliaia (.) e converti virgola in punto
-                                importo_str = importo_fattura.replace(' ', '').replace('.', '').replace(',', '.')
+                                importo_str = importo_liquidato.replace(' ', '').replace('.', '').replace(',', '.')
                                 totale_fatture_file += float(importo_str)
                             except:
                                 pass
@@ -842,3 +842,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
