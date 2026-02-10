@@ -53,7 +53,7 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
     try:
         with pdfplumber.open(file_pdf) as pdf:
             # Estrai informazioni dalla prima pagina
-            first_page_text = pdf.pages[0].extract_text(x_tolerance=5)
+            first_page_text = pdf.pages[0].extract_text(x_tolerance=10)
 
             # Estrai la società destinataria (in alto a destra nella prima pagina)
             # Cerca nel testo completo il pattern "NOME SRL/SPA/SNC/SAS"
@@ -90,7 +90,7 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                 return [], 0.0
 
             second_page = pdf.pages[1]
-            tables = second_page.extract_table({"text_x_tolerance": 5})
+            tables = second_page.extract_table({"text_x_tolerance": 10})
 
             dati_estratti = []
             totale_fatture_file = 0.0
@@ -842,5 +842,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
