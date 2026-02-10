@@ -325,7 +325,7 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
             # Aggiungi l'importo distinta a ogni riga del file
             for riga in dati_file:
                 # Inserisci importo distinta dopo società e data: [s, importo, dt, paziente, b, c, d]
-                dati_completi.append([riga[0], importo_distinta_str, riga[1], riga[2], riga[3], riga[4], riga[5]])
+                dati_completi.append([riga[0], importo_distinta_str, riga[1], riga[2], riga[3], riga[4], riga[5], file_name])
 
         except Exception as e:
             st.error(f"Errore nell'elaborazione del file '{file_name}'")
@@ -334,7 +334,7 @@ def estrai_dati_da_pdf(lista_file_pdf, lista_nomi_pdf=None):
             file_con_errori.append((file_name, str(e)))
 
     colonne_selezionate = ["Società Testata", "Importo Distinta", "Data Testata", "Nominativo Dirigente",
-                           "Data Fattura", "Numero Fattura", "Totale Rimborsato"]
+                           "Data Fattura", "Numero Fattura", "Totale Rimborsato", "Nome File PDF"]
 
     df = pd.DataFrame(dati_completi, columns=colonne_selezionate)
 
@@ -467,7 +467,7 @@ if not df_originali.empty or not df_nuovi.empty:
         # Riordina le colonne nell'ordine desiderato
         colonne_ordinate = ['Società Testata', 'Importo Distinta', 'Data Testata',
                            'Nominativo Dirigente', 'Data Fattura', 'Numero Fattura',
-                           'Totale Rimborsato', 'Tipo_Formato']
+                           'Totale Rimborsato', 'Nome File PDF', 'Tipo_Formato']
         # Seleziona solo le colonne che esistono nel DataFrame
         colonne_finali = [col for col in colonne_ordinate if col in df_finale.columns]
         df_finale = df_finale[colonne_finali]
