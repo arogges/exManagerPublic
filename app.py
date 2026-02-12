@@ -526,9 +526,9 @@ if not df_originali.empty or not df_nuovi.empty:
                 df_orig_export = df_originali.drop('Tipo_Formato', axis=1, errors='ignore')
                 # Aggiungi colonne Fattura Originale e Clinica dallo split di Numero Fattura per "\"
                 df_orig_export['Fattura Originale'] = df_orig_export['Numero Fattura'].apply(
-                    lambda x: str(x).split('\\')[0].strip() if pd.notna(x) and '\\' in str(x) else str(x) if pd.notna(x) else '')
+                    lambda x: str(x).split('/')[0].strip() if pd.notna(x) and '/' in str(x) else str(x) if pd.notna(x) else '')
                 df_orig_export['Clinica'] = df_orig_export['Numero Fattura'].apply(
-                    lambda x: str(x).split('\\')[1].strip() if pd.notna(x) and '\\' in str(x) else '')
+                    lambda x: str(x).split('/')[1].strip() if pd.notna(x) and '/' in str(x) else '')
                 df_orig_export.to_excel(writer, index=False, sheet_name="Rimborsi_FASI")
 
                 # Aggiungi foglio errori se presenti errori per FASI
@@ -564,9 +564,9 @@ if not df_originali.empty or not df_nuovi.empty:
                 df_nuovi_export = df_nuovi.drop('Tipo_Formato', axis=1, errors='ignore')
                 # Aggiungi colonne Fattura Originale e Clinica dallo split di Numero Fattura per "\"
                 df_nuovi_export['Fattura Originale'] = df_nuovi_export['Numero Fattura'].apply(
-                    lambda x: str(x).split('\\')[0].strip() if pd.notna(x) and '\\' in str(x) else str(x) if pd.notna(x) else '')
+                    lambda x: str(x).split('/')[0].strip() if pd.notna(x) and '/' in str(x) else str(x) if pd.notna(x) else '')
                 df_nuovi_export['Clinica'] = df_nuovi_export['Numero Fattura'].apply(
-                    lambda x: str(x).split('\\')[1].strip() if pd.notna(x) and '\\' in str(x) else '')
+                    lambda x: str(x).split('/')[1].strip() if pd.notna(x) and '/' in str(x) else '')
                 df_nuovi_export.to_excel(writer, index=False, sheet_name="Rimborsi_FASIOPEN")
 
                 # Aggiungi foglio errori se presenti errori per FASIOPEN
@@ -883,7 +883,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
 
