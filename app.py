@@ -382,7 +382,7 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
     return df, file_con_errori
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.6.5 - 10/02/2026 - Aggiunta colonna 'nome_file' nelle estrazioni FASI e FASIOPEN")
+st.info("Build 1.7.0 - 12/02/2026 - Aggiunte colonne 'Fattura Originale' e 'Clinica' nei report FASI e FASIOPEN")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
@@ -524,6 +524,11 @@ if not df_originali.empty or not df_nuovi.empty:
             buffer_fasi = io.BytesIO()
             with pd.ExcelWriter(buffer_fasi, engine="openpyxl") as writer:
                 df_orig_export = df_originali.drop('Tipo_Formato', axis=1, errors='ignore')
+                # Aggiungi colonne Fattura Originale e Clinica dallo split di Numero Fattura per "\"
+                df_orig_export['Fattura Originale'] = df_orig_export['Numero Fattura'].apply(
+                    lambda x: str(x).split('\\')[0].strip() if pd.notna(x) and '\\' in str(x) else str(x) if pd.notna(x) else '')
+                df_orig_export['Clinica'] = df_orig_export['Numero Fattura'].apply(
+                    lambda x: str(x).split('\\')[1].strip() if pd.notna(x) and '\\' in str(x) else '')
                 df_orig_export.to_excel(writer, index=False, sheet_name="Rimborsi_FASI")
 
                 # Aggiungi foglio errori se presenti errori per FASI
@@ -532,19 +537,36 @@ if not df_originali.empty or not df_nuovi.empty:
                     df_errori_fasi.to_excel(writer, index=False, sheet_name="Errori")
 
             file_name_fasi = f"FASI_{data_elaborazione}.xlsx"
-            st.download_button(
-                label="📥 Scarica Excel FASI",
-                data=buffer_fasi.getvalue(),
-                file_name=file_name_fasi,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key="download_fasi"
-            )
+            csv_fasi = df_orig_export.to_csv(index=False, header=False, sep=';').encode('utf-8')
+            file_name_fasi_csv = f"FASI_{data_elaborazione}.csv"
+            col_fasi_xl, col_fasi_csv = st.columns(2)
+            with col_fasi_xl:
+                st.download_button(
+                    label="📥 Scarica Excel FASI",
+                    data=buffer_fasi.getvalue(),
+                    file_name=file_name_fasi,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="download_fasi"
+                )
+            with col_fasi_csv:
+                st.download_button(
+                    label="📥 Scarica CSV FASI",
+                    data=csv_fasi,
+                    file_name=file_name_fasi_csv,
+                    mime="text/csv",
+                    key="download_fasi_csv"
+                )
 
         # Crea file Excel separato per FASIOPEN (nuovo formato)
         if not df_nuovi.empty:
             buffer_fasiopen = io.BytesIO()
             with pd.ExcelWriter(buffer_fasiopen, engine="openpyxl") as writer:
                 df_nuovi_export = df_nuovi.drop('Tipo_Formato', axis=1, errors='ignore')
+                # Aggiungi colonne Fattura Originale e Clinica dallo split di Numero Fattura per "\"
+                df_nuovi_export['Fattura Originale'] = df_nuovi_export['Numero Fattura'].apply(
+                    lambda x: str(x).split('\\')[0].strip() if pd.notna(x) and '\\' in str(x) else str(x) if pd.notna(x) else '')
+                df_nuovi_export['Clinica'] = df_nuovi_export['Numero Fattura'].apply(
+                    lambda x: str(x).split('\\')[1].strip() if pd.notna(x) and '\\' in str(x) else '')
                 df_nuovi_export.to_excel(writer, index=False, sheet_name="Rimborsi_FASIOPEN")
 
                 # Aggiungi foglio errori se presenti errori per FASIOPEN
@@ -553,13 +575,25 @@ if not df_originali.empty or not df_nuovi.empty:
                     df_errori_fasiopen.to_excel(writer, index=False, sheet_name="Errori")
 
             file_name_fasiopen = f"FASIOPEN_{data_elaborazione}.xlsx"
-            st.download_button(
-                label="📥 Scarica Excel FASIOPEN",
-                data=buffer_fasiopen.getvalue(),
-                file_name=file_name_fasiopen,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key="download_fasiopen"
-            )
+            csv_fasiopen = df_nuovi_export.to_csv(index=False, header=False, sep=';').encode('utf-8')
+            file_name_fasiopen_csv = f"FASIOPEN_{data_elaborazione}.csv"
+            col_fo_xl, col_fo_csv = st.columns(2)
+            with col_fo_xl:
+                st.download_button(
+                    label="📥 Scarica Excel FASIOPEN",
+                    data=buffer_fasiopen.getvalue(),
+                    file_name=file_name_fasiopen,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="download_fasiopen"
+                )
+            with col_fo_csv:
+                st.download_button(
+                    label="📥 Scarica CSV FASIOPEN",
+                    data=csv_fasiopen,
+                    file_name=file_name_fasiopen_csv,
+                    mime="text/csv",
+                    key="download_fasiopen_csv"
+                )
     else:
         st.warning("Nessuna tabella estratta dai PDF! Controlla i messaggi di errore sopra.")
 
@@ -849,6 +883,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
