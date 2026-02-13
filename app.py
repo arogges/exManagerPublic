@@ -537,7 +537,10 @@ if not df_originali.empty or not df_nuovi.empty:
                     df_errori_fasi.to_excel(writer, index=False, sheet_name="Errori")
 
             file_name_fasi = f"FASI_{data_elaborazione}.xlsx"
-            csv_fasi = df_orig_export.to_csv(index=False, header=False, sep=';').encode('utf-8')
+            # Rimuovi caratteri di ritorno a capo dai campi di testo per evitare rottura del formato CSV
+            df_orig_csv = df_orig_export.copy()
+            df_orig_csv = df_orig_csv.apply(lambda col: col.map(lambda x: str(x).replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ') if pd.notna(x) else x))
+            csv_fasi = df_orig_csv.to_csv(index=False, header=False, sep=';').encode('utf-8')
             file_name_fasi_csv = f"FASI_{data_elaborazione}.csv"
             col_fasi_xl, col_fasi_csv = st.columns(2)
             with col_fasi_xl:
@@ -575,7 +578,10 @@ if not df_originali.empty or not df_nuovi.empty:
                     df_errori_fasiopen.to_excel(writer, index=False, sheet_name="Errori")
 
             file_name_fasiopen = f"FASIOPEN_{data_elaborazione}.xlsx"
-            csv_fasiopen = df_nuovi_export.to_csv(index=False, header=False, sep=';').encode('utf-8')
+            # Rimuovi caratteri di ritorno a capo dai campi di testo per evitare rottura del formato CSV
+            df_nuovi_csv = df_nuovi_export.copy()
+            df_nuovi_csv = df_nuovi_csv.apply(lambda col: col.map(lambda x: str(x).replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ') if pd.notna(x) else x))
+            csv_fasiopen = df_nuovi_csv.to_csv(index=False, header=False, sep=';').encode('utf-8')
             file_name_fasiopen_csv = f"FASIOPEN_{data_elaborazione}.csv"
             col_fo_xl, col_fo_csv = st.columns(2)
             with col_fo_xl:
@@ -883,8 +889,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
 
 
 
