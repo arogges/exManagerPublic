@@ -382,7 +382,7 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
     return df, file_con_errori
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.7.0 - 12/02/2026 - Aggiunte colonne 'Fattura Originale' e 'Clinica' nei report FASI e FASIOPEN")
+st.info("Build 1.7.1 - 13/02/2026 - Aggiunta colonna 'Data Pagamento'")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
@@ -904,5 +904,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
