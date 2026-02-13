@@ -632,12 +632,24 @@ if incassi_file and dettagli_file:
     st.subheader("Anteprima - Dettaglio pagamenti")
     st.write(df_dettagli.head())
 
-    # Estrazione SEQ da testo (tutte le celle)
-    text_data = df_incassi.astype(str).values.ravel()
+    # Trova la colonna "data operazione" nel file incassi (case-insensitive)
+    col_data_op = None
+    for col in df_incassi.columns:
+        if str(col).strip().lower() == 'data operazione':
+            col_data_op = col
+            break
+
+    # Estrazione SEQ da testo riga per riga, con associazione alla data operazione
     seq_matches = []
-    for cell in text_data:
-        found = re.findall(r"(?i)seq\s*[:.]\s*(\d+)", cell)
-        seq_matches.extend(found)
+    seq_to_data_pagamento = {}
+    for idx, row in df_incassi.iterrows():
+        data_op = str(row[col_data_op]).strip() if col_data_op and pd.notna(row.get(col_data_op)) else ""
+        for cell in row.values:
+            found = re.findall(r"(?i)seq\s*[:.]\s*(\d+)", str(cell))
+            for seq in found:
+                seq_matches.append(seq)
+                if seq not in seq_to_data_pagamento and data_op:
+                    seq_to_data_pagamento[seq] = data_op
 
     seq_set = set(seq_matches)
 
@@ -653,7 +665,10 @@ if incassi_file and dettagli_file:
     if 'Seq' in df_dettagli.columns:
         df_dettagli['SEQ_PULITO'] = df_dettagli['Seq'].apply(estrai_seq_numerico)
 
-        df_filtrato = df_dettagli[df_dettagli['SEQ_PULITO'].isin(seq_set)]
+        df_filtrato = df_dettagli[df_dettagli['SEQ_PULITO'].isin(seq_set)].copy()
+
+        # Aggiungi colonna "Data Pagamento" dalla "data operazione" del file incassi
+        df_filtrato['Data Pagamento'] = df_filtrato['SEQ_PULITO'].map(seq_to_data_pagamento).fillna('')
 
         st.subheader("Righe filtrate da Dettaglio Pagamenti")
         st.write(df_filtrato.drop(columns=["SEQ_PULITO"]))
@@ -889,6 +904,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
