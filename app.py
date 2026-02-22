@@ -382,7 +382,7 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
     return df, file_con_errori
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.7.1 - 13/02/2026 - Aggiunta colonna 'Data Pagamento'")
+st.info("Build 1.7.3 - 22/02/2026 - Ricerca colonna 'Data Operazione' per sottostringa")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
@@ -635,7 +635,7 @@ if incassi_file and dettagli_file:
     # Trova la colonna "data operazione" nel file incassi (case-insensitive)
     col_data_op = None
     for col in df_incassi.columns:
-        if str(col).strip().lower() == 'data operazione':
+        if 'data operazione' in str(col).strip().lower():
             col_data_op = col
             break
 
@@ -643,7 +643,17 @@ if incassi_file and dettagli_file:
     seq_matches = []
     seq_to_data_pagamento = {}
     for idx, row in df_incassi.iterrows():
-        data_op = str(row[col_data_op]).strip() if col_data_op and pd.notna(row.get(col_data_op)) else ""
+        if col_data_op and pd.notna(row.get(col_data_op)):
+            val = str(row[col_data_op]).strip()
+            try:
+                # Excel salva le date come numeri seriali: convertiamo in data
+                serial = float(val)
+                data_op = (pd.Timestamp('1899-12-30') + pd.Timedelta(days=int(serial))).strftime('%d/%m/%Y')
+            except ValueError:
+                # Già una stringa data leggibile
+                data_op = val
+        else:
+            data_op = ""
         for cell in row.values:
             found = re.findall(r"(?i)seq\s*[:.]\s*(\d+)", str(cell))
             for seq in found:
@@ -904,6 +914,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
