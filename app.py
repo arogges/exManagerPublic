@@ -381,8 +381,124 @@ def estrai_dati_nuovo_formato(lista_file_pdf, lista_nomi_pdf=None):
 
     return df, file_con_errori
 
+
+def estrai_riferimento_ri3(n_assegno):
+    """Extract TT ticket numbers and invoice numbers from the N. assegno RI3 section."""
+    if pd.isna(n_assegno):
+        return [], []
+    text = str(n_assegno)
+
+    ri3_match = re.search(r':RI3:(.*?)(?::SEC:|$)', text, re.DOTALL | re.IGNORECASE)
+    ri3_text = ri3_match.group(1).strip() if ri3_match else text
+
+    tt_numbers = [t.upper() for t in re.findall(r'TT-\d+', ri3_text, re.IGNORECASE)]
+
+    fattura_numbers = []
+
+    # Pattern: FATTURA: NNN/NNN or FATTURAN NNN/NNN (explicit label)
+    explicit = re.findall(r'FATTURA\w*\s*:?\s*(\d[\d/]*)', ri3_text, re.IGNORECASE)
+    fattura_numbers.extend(explicit)
+
+    # Pattern: token immediately after TT-XXXXXXXX (implicit invoice reference)
+    after_tt = re.sub(r'.*?TT-\d+\s*', '', ri3_text, count=1).strip()
+    if after_tt:
+        m = re.match(r'(\d[\d/]*)', after_tt)
+        if m:
+            val = m.group(1)
+            if val not in fattura_numbers:
+                fattura_numbers.append(val)
+
+    fattura_numbers = list(dict.fromkeys(fattura_numbers))
+    fattura_numbers = [f for f in fattura_numbers if f and not re.match(r'^0{4,}', f)]
+
+    return tt_numbers, fattura_numbers
+
+
+def riconcilia_incassi_aon(df_fatture, df_incassi):
+    """
+    Reconcile AON incassi with fatture.
+    Adds columns: Rif. Estratto, Fatture Riconciliate, Metodo Match.
+    Matching priority: TT ticket number first, then Num Fattura.
+    """
+    tt_index = {}
+    num_index = {}
+
+    for _, row in df_fatture.iterrows():
+        tt = str(row.get('Master Ticket CRM', '')).strip().upper()
+        num = str(row.get('Num Fattura', '')).strip()
+        paziente = str(row.get('PAZIENTE', '')).strip()
+        importo = str(row.get('Importo Liquidato', '')).strip()
+        clinica = str(row.get('Nome Ric EE Fattura', '')).strip()
+
+        entry = {'num_fattura': num, 'paziente': paziente, 'importo': importo, 'clinica': clinica}
+
+        if tt and tt.lower() != 'nan':
+            tt_index.setdefault(tt, []).append(entry)
+
+        if num and num.lower() != 'nan':
+            norm = num.replace('.', '/').replace(' ', '')
+            num_index.setdefault(norm, []).append({**entry, 'tt': tt})
+
+    fatture_col = []
+    metodo_col = []
+    rif_col = []
+
+    for _, row in df_incassi.iterrows():
+        n_ass = row.get('N. assegno', '')
+        tt_list, fatt_list = estrai_riferimento_ri3(n_ass)
+
+        rif_parts = list(tt_list)
+        for f in fatt_list:
+            if f not in rif_parts:
+                rif_parts.append(f)
+        rif_col.append('; '.join(rif_parts[:3]) if rif_parts else '')
+
+        matched = []
+        method = 'Non trovato'
+
+        for tt in tt_list:
+            if tt in tt_index:
+                matched.extend(tt_index[tt])
+                method = 'TT'
+
+        if not matched:
+            for fatt_num in fatt_list:
+                norm = fatt_num.replace('.', '/').replace(' ', '')
+                if norm in num_index:
+                    matched.extend(num_index[norm])
+                    method = 'Num Fattura'
+
+        if matched:
+            seen = set()
+            unique = []
+            for m in matched:
+                key = m['num_fattura']
+                if key not in seen:
+                    seen.add(key)
+                    unique.append(m)
+
+            parts = []
+            for m in unique:
+                label = m['num_fattura']
+                if m['paziente'] and m['paziente'].lower() != 'nan':
+                    label += f" ({m['paziente']})"
+                parts.append(label)
+            fatture_col.append(' | '.join(parts))
+        else:
+            fatture_col.append('')
+
+        metodo_col.append(method)
+
+    df_result = df_incassi.copy()
+    df_result['Rif. Estratto'] = rif_col
+    df_result['Fatture Riconciliate'] = fatture_col
+    df_result['Metodo Match'] = metodo_col
+
+    return df_result
+
+
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.7.3 - 22/02/2026 - Ricerca colonna 'Data Operazione' per sottostringa")
+st.info("Build 1.8.0 - 09/06/2026 - Aggiunta sezione Riconciliazione Incassi AON")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
@@ -914,6 +1030,101 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ============================================================
+# Riconciliazione Incassi AON
+# ============================================================
+
+st.write("---")
+st.title("Riconciliazione Incassi AON")
+st.info(
+    "Carica il file delle fatture emesse verso AON e il file degli incassi ricevuti "
+    "per identificare automaticamente a quali fatture corrispondono i pagamenti. "
+    "La corrispondenza viene cercata prima tramite numero TT (ticket CRM), "
+    "poi tramite numero fattura estratto dalla descrizione del pagamento."
+)
+
+col_aon_f, col_aon_i = st.columns(2)
+
+with col_aon_f:
+    st.subheader("📄 File Fatture AON")
+    st.caption("File con le fatture emesse (es. 'Aprile 2026.xlsx')")
+    fatture_aon_file = st.file_uploader(
+        "Carica file fatture", type=["xls", "xlsx"], key="fatture_aon_uploader"
+    )
+
+with col_aon_i:
+    st.subheader("💰 File Incassi AON")
+    st.caption("File con gli incassi ricevuti (es. 'Incassi ricevuti Aprile 2026.xlsx')")
+    incassi_aon_file = st.file_uploader(
+        "Carica file incassi", type=["xls", "xlsx"], key="incassi_aon_uploader"
+    )
+
+if fatture_aon_file and incassi_aon_file:
+    df_fatture_aon = pd.read_excel(fatture_aon_file, dtype=str)
+    df_incassi_aon = pd.read_excel(incassi_aon_file, dtype=str)
+
+    col_req_fatture = ['Master Ticket CRM', 'Num Fattura', 'PAZIENTE', 'Importo Liquidato']
+    mancanti_fatture = [c for c in col_req_fatture if c not in df_fatture_aon.columns]
+    mancanti_incassi = [] if 'N. assegno' in df_incassi_aon.columns else ["'N. assegno'"]
+
+    if mancanti_fatture:
+        st.error(f"Colonne mancanti nel file fatture: {mancanti_fatture}")
+    elif mancanti_incassi:
+        st.error("Colonna 'N. assegno' non trovata nel file incassi.")
+    else:
+        with st.spinner("Elaborazione riconciliazione in corso..."):
+            df_riconciliato = riconcilia_incassi_aon(df_fatture_aon, df_incassi_aon)
+
+        n_tt = (df_riconciliato['Metodo Match'] == 'TT').sum()
+        n_fatt = (df_riconciliato['Metodo Match'] == 'Num Fattura').sum()
+        n_none = (df_riconciliato['Metodo Match'] == 'Non trovato').sum()
+
+        st.write("### Risultati Riconciliazione")
+        col_m1, col_m2, col_m3 = st.columns(3)
+        with col_m1:
+            st.metric("Riconciliati via TT", n_tt)
+        with col_m2:
+            st.metric("Riconciliati via N. Fattura", n_fatt)
+        with col_m3:
+            st.metric("Non riconciliati", n_none)
+
+        preview_cols = ['Importo controvalore', 'N. assegno', 'Rif. Estratto',
+                        'Fatture Riconciliate', 'Metodo Match']
+        if 'Società' in df_riconciliato.columns:
+            preview_cols = ['Società'] + preview_cols
+        available_preview = [c for c in preview_cols if c in df_riconciliato.columns]
+
+        st.write("### Anteprima (prime 20 righe)")
+        st.dataframe(df_riconciliato[available_preview].head(20))
+
+        if n_none > 0:
+            with st.expander(f"Mostra {n_none} pagamenti non riconciliati"):
+                mask_none = df_riconciliato['Metodo Match'] == 'Non trovato'
+                st.dataframe(df_riconciliato[mask_none][available_preview])
+
+        output_aon = BytesIO()
+        with pd.ExcelWriter(output_aon, engine='openpyxl') as writer:
+            df_riconciliato.to_excel(writer, index=False, sheet_name='Incassi_Riconciliati')
+            df_non_ric = df_riconciliato[df_riconciliato['Metodo Match'] == 'Non trovato']
+            if not df_non_ric.empty:
+                df_non_ric[available_preview].to_excel(
+                    writer, index=False, sheet_name='Non_Riconciliati'
+                )
+        output_aon.seek(0)
+
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        st.download_button(
+            label="📥 Scarica file riconciliato (Excel)",
+            data=output_aon,
+            file_name=f"Incassi_AON_Riconciliati_{ts}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="download_riconciliazione_aon"
+        )
+
+
+
 
 
 
