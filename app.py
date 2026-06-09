@@ -440,6 +440,7 @@ def riconcilia_incassi_aon(df_fatture, df_incassi):
             num_index.setdefault(norm, []).append({**entry, 'tt': tt})
 
     fatture_col = []
+    pazienti_col = []
     metodo_col = []
     rif_col = []
 
@@ -477,20 +478,20 @@ def riconcilia_incassi_aon(df_fatture, df_incassi):
                     seen.add(key)
                     unique.append(m)
 
-            parts = []
-            for m in unique:
-                label = m['num_fattura']
-                if m['paziente'] and m['paziente'].lower() != 'nan':
-                    label += f" ({m['paziente']})"
-                parts.append(label)
-            fatture_col.append(' | '.join(parts))
+            fatture_col.append(' | '.join(m['num_fattura'] for m in unique))
+            pazienti_col.append(' | '.join(
+                m['paziente'] for m in unique
+                if m['paziente'] and m['paziente'].lower() != 'nan'
+            ))
         else:
             fatture_col.append('')
+            pazienti_col.append('')
 
         metodo_col.append(method)
 
     df_result = df_incassi.copy()
     df_result['Rif. Estratto'] = rif_col
+    df_result['Assistito'] = pazienti_col
     df_result['Fatture Riconciliate'] = fatture_col
     df_result['Metodo Match'] = metodo_col
 
@@ -1091,7 +1092,7 @@ if fatture_aon_file and incassi_aon_file:
             st.metric("Non riconciliati", n_none)
 
         preview_cols = ['Importo controvalore', 'N. assegno', 'Rif. Estratto',
-                        'Fatture Riconciliate', 'Metodo Match']
+                        'Assistito', 'Fatture Riconciliate', 'Metodo Match']
         if 'Società' in df_riconciliato.columns:
             preview_cols = ['Società'] + preview_cols
         available_preview = [c for c in preview_cols if c in df_riconciliato.columns]
@@ -1122,9 +1123,6 @@ if fatture_aon_file and incassi_aon_file:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             key="download_riconciliazione_aon"
         )
-
-
-
 
 
 
