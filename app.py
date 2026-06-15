@@ -429,8 +429,9 @@ def riconcilia_incassi_aon(df_fatture, df_incassi):
         paziente = str(row.get('PAZIENTE', '')).strip()
         importo = str(row.get('Importo Liquidato', '')).strip()
         clinica = str(row.get('Nome Ric EE Fattura', '')).strip()
+        int_code = str(row.get('INT CODE', '')).strip()
 
-        entry = {'num_fattura': num, 'paziente': paziente, 'importo': importo, 'clinica': clinica}
+        entry = {'num_fattura': num, 'paziente': paziente, 'importo': importo, 'clinica': clinica, 'int_code': int_code}
 
         if tt and tt.lower() != 'nan':
             tt_index.setdefault(tt, []).append(entry)
@@ -441,6 +442,7 @@ def riconcilia_incassi_aon(df_fatture, df_incassi):
 
     fatture_col = []
     pazienti_col = []
+    intcode_col = []
     metodo_col = []
     rif_col = []
 
@@ -483,9 +485,14 @@ def riconcilia_incassi_aon(df_fatture, df_incassi):
                 m['paziente'] for m in unique
                 if m['paziente'] and m['paziente'].lower() != 'nan'
             ))
+            intcode_col.append(' | '.join(
+                m['int_code'] for m in unique
+                if m['int_code'] and m['int_code'].lower() != 'nan'
+            ))
         else:
-            fatture_col.append('')
+            fatture_col.append('; '.join(fatt_list) if fatt_list else '')
             pazienti_col.append('')
+            intcode_col.append('')
 
         metodo_col.append(method)
 
@@ -493,13 +500,24 @@ def riconcilia_incassi_aon(df_fatture, df_incassi):
     df_result['Rif. Estratto'] = rif_col
     df_result['Assistito'] = pazienti_col
     df_result['Fatture Riconciliate'] = fatture_col
+    df_result['INT CODE'] = intcode_col
     df_result['Metodo Match'] = metodo_col
+
+    colonne_da_rimuovere = [
+        'Commento ID', 'Commenti', 'Commento Contenuto', 'Stato riconciliazione',
+        'Attività res.', 'STATUS_RICONCILIAZIONE_GL', 'TIPOLOGIA_GL', 'Conto',
+        'N. voucher', 'Rif. esterno', 'Divisa Codice', 'Descrizione', 'Descrizione 2',
+        'Attività pianificata ID (lbl:)', 'ID operazione ID (lbl:)',
+        'Risultato Numero (lbl:)', 'Data/ora creazione', 'Data/ora modifica',
+        'Risultato Data riconciliazione (lbl:)',
+    ]
+    df_result = df_result.drop(columns=colonne_da_rimuovere, errors='ignore')
 
     return df_result
 
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.8.0 - 09/06/2026 - Aggiunta sezione Riconciliazione Incassi AON")
+st.info("Build 1.8.1 - 15/06/2026 - Tuning sezione Riconciliazione Incassi AON")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
@@ -1092,7 +1110,7 @@ if fatture_aon_file and incassi_aon_file:
             st.metric("Non riconciliati", n_none)
 
         preview_cols = ['Importo controvalore', 'N. assegno', 'Rif. Estratto',
-                        'Assistito', 'Fatture Riconciliate', 'Metodo Match']
+                        'Assistito', 'Fatture Riconciliate', 'INT CODE', 'Metodo Match']
         if 'Società' in df_riconciliato.columns:
             preview_cols = ['Società'] + preview_cols
         available_preview = [c for c in preview_cols if c in df_riconciliato.columns]
@@ -1123,7 +1141,6 @@ if fatture_aon_file and incassi_aon_file:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             key="download_riconciliazione_aon"
         )
-
 
 
 
