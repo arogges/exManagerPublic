@@ -516,6 +516,196 @@ def riconcilia_incassi_aon(df_fatture, df_incassi):
     return df_result
 
 
+def trova_riga_header(file_excel, colonne_chiave, max_righe=5):
+    """
+    Individua l'indice della riga di intestazione cercando, tra le prime righe del file,
+    quella che contiene tutte le colonne chiave indicate (utile quando il file ha una
+    riga di titolo prima della vera intestazione, come i report POSTE).
+    """
+    if hasattr(file_excel, 'seek'):
+        file_excel.seek(0)
+    df_raw = pd.read_excel(file_excel, dtype=str, header=None, nrows=max_righe)
+    for i in range(len(df_raw)):
+        valori_riga = set(str(v).strip() for v in df_raw.iloc[i].values if pd.notna(v))
+        if all(col in valori_riga for col in colonne_chiave):
+            return i
+    return 0
+
+
+def carica_excel_con_header_dinamico(file_excel, colonne_chiave):
+    """Legge un file Excel individuando automaticamente la riga di intestazione."""
+    header_idx = trova_riga_header(file_excel, colonne_chiave)
+    if hasattr(file_excel, 'seek'):
+        file_excel.seek(0)
+    return pd.read_excel(file_excel, dtype=str, header=header_idx)
+
+
+def estrai_riferimento_poste(testo):
+    """
+    Estrae dal testo del riferimento pagamento POSTE la data di liquidazione
+    (dopo la dicitura "LIQUIDAZIONE DEL") e il numero di polizza (dopo "POLIZZA NR.").
+    Restituisce una tupla (data_liquidazione, numero_polizza), entrambi grezzi (stringhe) o None.
+    """
+    if pd.isna(testo):
+        return None, None
+
+    # Il testo dei bonifici POSTE a volte contiene spazi spuri anche all'interno di
+    # parole e numeri (es. "POL IZZA" o "202 6" al posto di "POLIZZA"/"2026"), residuo
+    # dell'a-capo nel documento originale: li rimuoviamo prima di cercare i pattern.
+    testo_no_spazi = re.sub(r'\s+', '', str(testo))
+
+    match = re.search(
+        r'LIQUIDAZIONEDEL([\d\.\/]+?)POLIZZANR\.?(\d+)',
+        testo_no_spazi, re.IGNORECASE
+    )
+    if not match:
+        return None, None
+
+    data_grezza = match.group(1)
+    numero_polizza = match.group(2)
+
+    return data_grezza, numero_polizza
+
+
+def normalizza_data_poste(data_str):
+    """Normalizza una data (stringa) nel formato DD.MM.YYYY per il confronto."""
+    if not data_str or pd.isna(data_str):
+        return None
+    s = str(data_str).strip()
+
+    # Formato ISO (es. "2026-05-04 00:00:00", come lo restituisce pandas per le date Excel)
+    match_iso = re.match(r'^(\d{4})-(\d{2})-(\d{2})', s)
+    if match_iso:
+        anno, mese, giorno = match_iso.groups()
+        return f"{giorno}.{mese}.{anno}"
+
+    # Formato europeo DD.MM.YYYY o DD/MM/YYYY (es. quello estratto dal testo del bonifico)
+    match_eu = re.match(r'^(\d{1,2})[./](\d{1,2})[./](\d{4})$', s)
+    if match_eu:
+        giorno, mese, anno = match_eu.groups()
+        return f"{int(giorno):02d}.{int(mese):02d}.{anno}"
+
+    # Fallback generico per altri formati non previsti
+    try:
+        dt = pd.to_datetime(s, dayfirst=True)
+    except (ValueError, TypeError):
+        return None
+    return dt.strftime('%d.%m.%Y')
+
+
+def normalizza_numero_polizza(valore):
+    """Normalizza un numero di polizza rimuovendo eventuali zeri iniziali per il confronto."""
+    if pd.isna(valore):
+        return None
+    v = str(valore).strip().lstrip('0')
+    return v if v else '0'
+
+
+def riconcilia_incassi_poste(df_fondo, df_incassi):
+    """
+    Riconcilia gli incassi POSTE ricevuti dalla banca con le liquidazioni riportate
+    nel report del fondo.
+    Il collegamento tra i due file avviene tramite la data di liquidazione e il numero
+    di polizza, estratti dalla colonna "N. assegno" (o, in sua assenza, "Riferimento
+    interno") del report incassi, confrontati con le colonne "DataValuta" e
+    "NumeroPolizzaPA" del report del fondo (con fallback su "CodicePosizione", dove
+    per alcuni ambiti - es. "PA PosteAssicura" - il numero di polizza compare lì
+    anziché in "NumeroPolizzaPA").
+    """
+    indice_polizza = {}
+
+    for _, row in df_fondo.iterrows():
+        data_valuta = normalizza_data_poste(row.get('DataValuta'))
+        if not data_valuta:
+            continue
+
+        entry = {
+            'assistito': str(row.get('Assistito', '')).strip(),
+            'numero_fattura': str(row.get('NumeroFattura', '')).strip(),
+            'importo': str(row.get('Importo', '')).strip(),
+            'ragione_sociale': str(row.get('RagioneSociale', '')).strip(),
+        }
+
+        for colonna_polizza, nome_fonte in (('NumeroPolizzaPA', 'NumeroPolizzaPA'), ('CodicePosizione', 'CodicePosizione')):
+            polizza_norm = normalizza_numero_polizza(row.get(colonna_polizza))
+            if polizza_norm:
+                chiave = (data_valuta, polizza_norm)
+                indice_polizza.setdefault(chiave, []).append({**entry, 'fonte': nome_fonte})
+
+    data_col = []
+    polizza_col = []
+    assistito_col = []
+    fatture_col = []
+    importo_col = []
+    metodo_col = []
+
+    for _, row in df_incassi.iterrows():
+        testo_rif = row.get('N. assegno', '')
+        if pd.isna(testo_rif) or not str(testo_rif).strip():
+            testo_rif = row.get('Riferimento interno', '')
+
+        data_liq, num_polizza = estrai_riferimento_poste(testo_rif)
+        data_norm = normalizza_data_poste(data_liq)
+        polizza_norm = normalizza_numero_polizza(num_polizza)
+
+        data_col.append(data_liq or '')
+        polizza_col.append(num_polizza or '')
+
+        matched = []
+        method = 'Non trovato'
+
+        if data_norm and polizza_norm:
+            matched = indice_polizza.get((data_norm, polizza_norm), [])
+            if matched:
+                fonti = sorted(set(m['fonte'] for m in matched))
+                method = 'Data + ' + ' / '.join(fonti)
+
+        if matched:
+            seen = set()
+            unique = []
+            for m in matched:
+                key = (m['numero_fattura'], m['importo'])
+                if key not in seen:
+                    seen.add(key)
+                    unique.append(m)
+
+            assistito_col.append(' | '.join(
+                m['assistito'] for m in unique if m['assistito'] and m['assistito'].lower() != 'nan'
+            ))
+            fatture_col.append(' | '.join(
+                m['numero_fattura'] for m in unique if m['numero_fattura'] and m['numero_fattura'].lower() != 'nan'
+            ))
+            importo_col.append(' | '.join(
+                m['importo'] for m in unique if m['importo'] and m['importo'].lower() != 'nan'
+            ))
+        else:
+            assistito_col.append('')
+            fatture_col.append('')
+            importo_col.append('')
+
+        metodo_col.append(method)
+
+    df_result = df_incassi.copy()
+    df_result['Data Liquidazione'] = data_col
+    df_result['Numero Polizza'] = polizza_col
+    df_result['Assistito Fondo'] = assistito_col
+    df_result['Fatture Fondo'] = fatture_col
+    df_result['Importo Fondo'] = importo_col
+    df_result['Metodo Match'] = metodo_col
+
+    colonne_da_rimuovere = [
+        'Commento ID', 'Commenti', 'Commento Contenuto', 'Stato riconciliazione',
+        'Attività res.', 'STATUS_RICONCILIAZIONE_GL', 'TIPOLOGIA_GL', 'Conto',
+        'N. voucher', 'Rif. esterno', 'Divisa Codice', 'Descrizione', 'Descrizione 2',
+        'Attività pianificata ID (lbl:)', 'ID operazione ID (lbl:)',
+        'Risultato Numero (lbl:)', 'Data/ora creazione', 'Data/ora modifica',
+        'Risultato Data riconciliazione (lbl:)',
+    ]
+    df_result = df_result.drop(columns=colonne_da_rimuovere, errors='ignore')
+
+    return df_result
+
+
 st.title("Estrazione Tabelle da PDF")
 st.info("Build 1.8.1 - 15/06/2026 - Tuning sezione Riconciliazione Incassi AON")
 
@@ -1142,5 +1332,95 @@ if fatture_aon_file and incassi_aon_file:
             key="download_riconciliazione_aon"
         )
 
+
+# ============================================================
+# Riconciliazione Incassi POSTE
+# ============================================================
+
+st.write("---")
+st.title("Riconciliazione Incassi POSTE")
+st.info(
+    "Carica il report delle liquidazioni inviato dal fondo (es. 'Pagamenti_Maggio.xlsx') e il "
+    "report degli incassi ricevuti dalla banca (es. 'IncassiBanca_Poste_Maggio.xlsx') per "
+    "identificare a quale riga del report del fondo corrisponde ciascun bonifico ricevuto. "
+    "La corrispondenza viene cercata estraendo dalla colonna 'N. assegno' (o 'Riferimento "
+    "interno') la data di liquidazione e il numero di polizza, confrontati con le colonne "
+    "'DataValuta' e 'NumeroPolizzaPA' (o 'CodicePosizione') del report del fondo."
+)
+
+col_poste_f, col_poste_i = st.columns(2)
+
+with col_poste_f:
+    st.subheader("📄 Report Fondo POSTE")
+    st.caption("File con le liquidazioni del fondo (es. 'Pagamenti_Maggio.xlsx')")
+    fondo_poste_file = st.file_uploader(
+        "Carica file liquidazioni fondo", type=["xls", "xlsx"], key="fondo_poste_uploader"
+    )
+
+with col_poste_i:
+    st.subheader("💰 Incassi Banca POSTE")
+    st.caption("File con gli incassi ricevuti (es. 'IncassiBanca_Poste_Maggio.xlsx')")
+    incassi_poste_file = st.file_uploader(
+        "Carica file incassi banca", type=["xls", "xlsx"], key="incassi_poste_uploader"
+    )
+
+if fondo_poste_file and incassi_poste_file:
+    df_fondo_poste = carica_excel_con_header_dinamico(fondo_poste_file, ['DataValuta', 'NumeroPolizzaPA'])
+    df_incassi_poste = pd.read_excel(incassi_poste_file, dtype=str)
+
+    col_req_fondo = ['DataValuta', 'NumeroPolizzaPA']
+    mancanti_fondo = [c for c in col_req_fondo if c not in df_fondo_poste.columns]
+    mancanti_incassi_poste = [] if ('N. assegno' in df_incassi_poste.columns or 'Riferimento interno' in df_incassi_poste.columns) else ["'N. assegno' / 'Riferimento interno'"]
+
+    if mancanti_fondo:
+        st.error(f"Colonne mancanti nel report del fondo: {mancanti_fondo}")
+    elif mancanti_incassi_poste:
+        st.error("Nessuna colonna 'N. assegno' o 'Riferimento interno' trovata nel file incassi.")
+    else:
+        with st.spinner("Elaborazione riconciliazione in corso..."):
+            df_riconciliato_poste = riconcilia_incassi_poste(df_fondo_poste, df_incassi_poste)
+
+        n_match = (df_riconciliato_poste['Metodo Match'] != 'Non trovato').sum()
+        n_none_poste = (df_riconciliato_poste['Metodo Match'] == 'Non trovato').sum()
+
+        st.write("### Risultati Riconciliazione")
+        col_pm1, col_pm2 = st.columns(2)
+        with col_pm1:
+            st.metric("Riconciliati", n_match)
+        with col_pm2:
+            st.metric("Non riconciliati", n_none_poste)
+
+        preview_cols_poste = ['Importo controvalore', 'Data Liquidazione', 'Numero Polizza',
+                               'Assistito Fondo', 'Fatture Fondo', 'Importo Fondo', 'Metodo Match']
+        if 'Società' in df_riconciliato_poste.columns:
+            preview_cols_poste = ['Società'] + preview_cols_poste
+        available_preview_poste = [c for c in preview_cols_poste if c in df_riconciliato_poste.columns]
+
+        st.write("### Anteprima (prime 20 righe)")
+        st.dataframe(df_riconciliato_poste[available_preview_poste].head(20))
+
+        if n_none_poste > 0:
+            with st.expander(f"Mostra {n_none_poste} pagamenti non riconciliati"):
+                mask_none_poste = df_riconciliato_poste['Metodo Match'] == 'Non trovato'
+                st.dataframe(df_riconciliato_poste[mask_none_poste][available_preview_poste])
+
+        output_poste = BytesIO()
+        with pd.ExcelWriter(output_poste, engine='openpyxl') as writer:
+            df_riconciliato_poste.to_excel(writer, index=False, sheet_name='Incassi_Riconciliati')
+            df_non_ric_poste = df_riconciliato_poste[df_riconciliato_poste['Metodo Match'] == 'Non trovato']
+            if not df_non_ric_poste.empty:
+                df_non_ric_poste[available_preview_poste].to_excel(
+                    writer, index=False, sheet_name='Non_Riconciliati'
+                )
+        output_poste.seek(0)
+
+        ts_poste = datetime.now().strftime('%Y%m%d_%H%M%S')
+        st.download_button(
+            label="📥 Scarica file riconciliato (Excel)",
+            data=output_poste,
+            file_name=f"Incassi_POSTE_Riconciliati_{ts_poste}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="download_riconciliazione_poste"
+        )
 
 
