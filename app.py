@@ -671,21 +671,28 @@ def riconcilia_incassi_poste(df_fondo, df_incassi):
                     unique.append(m)
 
             # Tra bonifico e assistito non c'è una relazione diretta (la stessa polizza/data copre
-            # più assistiti e più bonifici): si riporta un solo nome per bonifico, scorrendo gli
-            # assistiti distinti della polizza così da non ripetere lo stesso nome su ogni riga.
-            assistiti_unici = list(dict.fromkeys(
-                m['assistito'] for m in unique if m['assistito'] and m['assistito'].lower() != 'nan'
-            ))
+            # più assistiti e più bonifici): si riporta un solo assistito per bonifico, scorrendo
+            # gli assistiti distinti della polizza così da non ripetere lo stesso nome su ogni
+            # riga, insieme al numero di fattura della relativa riga del fondo.
+            righe_per_assistito = {}
+            for m in unique:
+                if m['assistito'] and m['assistito'].lower() != 'nan':
+                    righe_per_assistito.setdefault(m['assistito'], m)
+            assistiti_unici = list(righe_per_assistito)
             if assistiti_unici:
                 chiave_polizza = (data_norm, polizza_norm)
                 n_usati = assistiti_usati.get(chiave_polizza, 0)
                 assistiti_usati[chiave_polizza] = n_usati + 1
-                assistito_col.append(assistiti_unici[n_usati % len(assistiti_unici)])
+                nome = assistiti_unici[n_usati % len(assistiti_unici)]
+                fattura = righe_per_assistito[nome]['numero_fattura']
+                assistito_col.append(nome)
+                fatture_col.append(fattura if fattura.lower() != 'nan' else '')
             else:
                 assistito_col.append('')
-            fatture_col.append(' | '.join(
-                m['numero_fattura'] for m in unique if m['numero_fattura'] and m['numero_fattura'].lower() != 'nan'
-            ))
+                fatture_col.append(next(
+                    (m['numero_fattura'] for m in unique
+                     if m['numero_fattura'] and m['numero_fattura'].lower() != 'nan'), ''
+                ))
             importo_col.append(' | '.join(
                 m['importo'] for m in unique if m['importo'] and m['importo'].lower() != 'nan'
             ))
@@ -1433,6 +1440,9 @@ if fondo_poste_file and incassi_poste_file:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             key="download_riconciliazione_poste"
         )
+
+
+
 
 
 
