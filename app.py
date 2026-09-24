@@ -669,9 +669,12 @@ def riconcilia_incassi_poste(df_fondo, df_incassi):
                     seen.add(key)
                     unique.append(m)
 
-            assistito_col.append(' | '.join(
+            # Lo stesso assistito può comparire su più righe del fondo (stessa polizza, stessa
+            # data, fatture o importi diversi/uguali): il nome va mostrato una sola volta.
+            assistiti_unici = list(dict.fromkeys(
                 m['assistito'] for m in unique if m['assistito'] and m['assistito'].lower() != 'nan'
             ))
+            assistito_col.append(' | '.join(assistiti_unici))
             fatture_col.append(' | '.join(
                 m['numero_fattura'] for m in unique if m['numero_fattura'] and m['numero_fattura'].lower() != 'nan'
             ))
@@ -1422,5 +1425,6 @@ if fondo_poste_file and incassi_poste_file:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             key="download_riconciliazione_poste"
         )
+
 
 
