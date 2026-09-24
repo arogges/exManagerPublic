@@ -638,6 +638,7 @@ def riconcilia_incassi_poste(df_fondo, df_incassi):
     fatture_col = []
     importo_col = []
     metodo_col = []
+    assistiti_usati = {}
 
     for _, row in df_incassi.iterrows():
         testo_rif = row.get('N. assegno', '')
@@ -669,12 +670,19 @@ def riconcilia_incassi_poste(df_fondo, df_incassi):
                     seen.add(key)
                     unique.append(m)
 
-            # Lo stesso assistito può comparire su più righe del fondo (stessa polizza, stessa
-            # data, fatture o importi diversi/uguali): il nome va mostrato una sola volta.
+            # Tra bonifico e assistito non c'è una relazione diretta (la stessa polizza/data copre
+            # più assistiti e più bonifici): si riporta un solo nome per bonifico, scorrendo gli
+            # assistiti distinti della polizza così da non ripetere lo stesso nome su ogni riga.
             assistiti_unici = list(dict.fromkeys(
                 m['assistito'] for m in unique if m['assistito'] and m['assistito'].lower() != 'nan'
             ))
-            assistito_col.append(' | '.join(assistiti_unici))
+            if assistiti_unici:
+                chiave_polizza = (data_norm, polizza_norm)
+                n_usati = assistiti_usati.get(chiave_polizza, 0)
+                assistiti_usati[chiave_polizza] = n_usati + 1
+                assistito_col.append(assistiti_unici[n_usati % len(assistiti_unici)])
+            else:
+                assistito_col.append('')
             fatture_col.append(' | '.join(
                 m['numero_fattura'] for m in unique if m['numero_fattura'] and m['numero_fattura'].lower() != 'nan'
             ))
@@ -1425,6 +1433,7 @@ if fondo_poste_file and incassi_poste_file:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             key="download_riconciliazione_poste"
         )
+
 
 
 
