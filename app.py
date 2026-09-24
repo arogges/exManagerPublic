@@ -710,7 +710,7 @@ def riconcilia_incassi_poste(df_fondo, df_incassi):
 
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.8.1 - 15/06/2026 - Tuning sezione Riconciliazione Incassi AON")
+st.info("Build 1.8.2 - 24/09/2026 - Riconciliazione Incassi POSTE: nomi assistito non più duplicati")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
