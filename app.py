@@ -753,7 +753,7 @@ def riconcilia_incassi_poste(df_fondo, df_incassi):
 
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.8.2 - 24/09/2026 - Riconciliazione Incassi POSTE: nomi assistito non più duplicati")
+st.info("Build 1.8.3 - 06/11/2026 - FasiOpen: corretti importi con virgola mal estratta (es. \"4000,\") ed esclusione righe a zero")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
@@ -1468,6 +1468,7 @@ if fondo_poste_file and incassi_poste_file:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             key="download_riconciliazione_poste"
         )
+
 
 
 
