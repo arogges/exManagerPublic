@@ -45,6 +45,36 @@ def estrai_data_da_pdf_testata(file_pdf, file_name):
         st.error(f"Dettaglio errore: {str(e)}")
         return "errore_estrazione_data"
 
+def normalizza_importo(valore):
+    """
+    Converte un importo estratto dal PDF in float.
+    Gestisce testo "sporco" come "4000\\n," o "000\\n," (PyMuPDF a volte estrae
+    la virgola dei decimali su una riga separata, dopo le cifre).
+    Restituisce None se il valore non è interpretabile.
+    """
+    if valore is None:
+        return None
+    s = re.sub(r'\s+', '', str(valore))
+    if not s:
+        return None
+    # Formato italiano corretto: 1.234,56 oppure 40,00
+    if re.fullmatch(r'-?\d{1,3}(\.\d{3})*,\d{1,2}|-?\d+,\d{1,2}', s):
+        return float(s.replace('.', '').replace(',', '.'))
+    cifre = re.sub(r'\D', '', s)
+    if not cifre:
+        return None
+    segno = -1 if s.startswith('-') else 1
+    # Virgola presente ma in posizione sbagliata: gli importi hanno sempre 2 decimali
+    if ',' in s:
+        return segno * int(cifre) / 100
+    return segno * float(cifre)
+
+
+def formatta_importo(valore):
+    """Formatta un float come importo italiano (es. 1.234,56)."""
+    return f"{valore:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+
+
 def estrai_dati_formato_nuovo(file_pdf, file_name):
     """
     Estrae dati dal nuovo formato PDF (come 011-FasiOpen.pdf)
@@ -154,24 +184,23 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                     # Usa il familiare se presente, altrimenti l'iscritto principale
                     paziente = nominativo_familiare if nominativo_familiare else nominativo
 
+                    # Normalizza gli importi (il testo estratto può essere "sporco", es. "4000\n,")
+                    valore_fattura = normalizza_importo(importo_fattura)
+                    valore_liquidato = normalizza_importo(importo_liquidato)
+
                     # Includi solo se fattura e rimborso sono diversi da zero
                     if (data_fattura and numero_fattura and
-                        importo_fattura and importo_fattura.strip() and importo_fattura != "0,00" and
-                        importo_liquidato and importo_liquidato.strip() and importo_liquidato != "0,00"):
+                        valore_fattura and valore_liquidato):
                         record = [
                             societa,
                             data_documento,
                             paziente,
                             data_fattura,
                             numero_fattura,
-                            importo_liquidato
+                            formatta_importo(valore_liquidato)
                         ]
                         dati_estratti.append(record)
-                        try:
-                            importo_str = importo_liquidato.replace(' ', '').replace('.', '').replace(',', '.')
-                            totale_fatture_file += float(importo_str)
-                        except:
-                            pass
+                        totale_fatture_file += valore_liquidato
             else:
                 st.error(f"Nessun header trovato nel file {file_name}")
 
@@ -673,7 +702,7 @@ def riconcilia_incassi_poste(df_fondo, df_incassi):
             # Tra bonifico e assistito non c'è una relazione diretta (la stessa polizza/data copre
             # più assistiti e più bonifici): si riporta un solo assistito per bonifico, scorrendo
             # gli assistiti distinti della polizza così da non ripetere lo stesso nome su ogni
-            # riga, insieme al numero di fattura della relativa riga del fondo.
+            # riga, insieme a numero di fattura e importo della relativa riga del fondo.
             righe_per_assistito = {}
             for m in unique:
                 if m['assistito'] and m['assistito'].lower() != 'nan':
@@ -684,18 +713,17 @@ def riconcilia_incassi_poste(df_fondo, df_incassi):
                 n_usati = assistiti_usati.get(chiave_polizza, 0)
                 assistiti_usati[chiave_polizza] = n_usati + 1
                 nome = assistiti_unici[n_usati % len(assistiti_unici)]
-                fattura = righe_per_assistito[nome]['numero_fattura']
-                assistito_col.append(nome)
-                fatture_col.append(fattura if fattura.lower() != 'nan' else '')
+                riga_scelta = righe_per_assistito[nome]
             else:
-                assistito_col.append('')
-                fatture_col.append(next(
-                    (m['numero_fattura'] for m in unique
-                     if m['numero_fattura'] and m['numero_fattura'].lower() != 'nan'), ''
-                ))
-            importo_col.append(' | '.join(
-                m['importo'] for m in unique if m['importo'] and m['importo'].lower() != 'nan'
-            ))
+                nome = ''
+                riga_scelta = unique[0]
+            assistito_col.append(nome)
+            fatture_col.append(
+                riga_scelta['numero_fattura'] if riga_scelta['numero_fattura'].lower() != 'nan' else ''
+            )
+            importo_col.append(
+                riga_scelta['importo'] if riga_scelta['importo'].lower() != 'nan' else ''
+            )
         else:
             assistito_col.append('')
             fatture_col.append('')
