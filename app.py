@@ -132,7 +132,14 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
         totale_fatture_file = 0.0
 
         if tabs.tables:
-            tables = tabs[0].extract()  # lista di liste, come pdfplumber
+            # Non usiamo tabs[0].extract(): perde gli spazi tra le parole (es. "NAUFELRAUL")
+            # e sposta la virgola dei decimali (es. "4000\n,"). Leggiamo invece il testo
+            # contenuto nell'area di ogni cella, che mantiene spazi e formato corretti.
+            tables = [
+                [second_page.get_text("text", clip=cella).strip() if cella else None
+                 for cella in riga.cells]
+                for riga in tabs[0].rows
+            ]
 
             # Trova l'indice della riga di intestazione
             header_row_idx = None
@@ -167,7 +174,7 @@ def estrai_dati_formato_nuovo(file_pdf, file_name):
                     nominativo_raw = row[1] if len(row) > 1 and row[1] else ""  # Iscritto Principale
                     nominativo_familiare_raw = row[2] if len(row) > 2 and row[2] else ""  # Nominativo Familiare
                     data_fattura = row[3] if len(row) > 3 and row[3] else ""
-                    numero_fattura = row[4] if len(row) > 4 and row[4] else ""
+                    numero_fattura = re.sub(r'\s+', '', row[4]) if len(row) > 4 and row[4] else ""
                     importo_fattura = row[5] if len(row) > 5 and row[5] else ""  # Importo Fattura
                     importo_liquidato = row[6] if len(row) > 6 and row[6] else ""  # Totale Rimborsato
 
@@ -753,7 +760,7 @@ def riconcilia_incassi_poste(df_fondo, df_incassi):
 
 
 st.title("Estrazione Tabelle da PDF")
-st.info("Build 1.8.3 - 06/11/2026 - FasiOpen: corretti importi con virgola mal estratta (es. \"4000,\") ed esclusione righe a zero")
+st.info("Build 1.8.4 - 09/11/2026 - FasiOpen: ripristinato spazio tra cognome e nome, importi corretti")
 
 # Creo due sezioni separate per i due tipi di file
 col1, col2 = st.columns(2)
@@ -1468,7 +1475,6 @@ if fondo_poste_file and incassi_poste_file:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             key="download_riconciliazione_poste"
         )
-
 
 
 
